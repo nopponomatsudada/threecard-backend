@@ -1,0 +1,45 @@
+# Build artifacts
+build/
+.gradle/
+out/
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# Git
+.git/
+.gitignore
+
+# Environment and secrets
+.env
+.env.*
+*.secret
+secrets.json
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Tests
+src/test/
+test-results/
+coverage/
+
+# Infrastructure (not needed for app build)
+infra/
+mock/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Local development
+docker-compose.override.yml

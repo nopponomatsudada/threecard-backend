@@ -1,0 +1,82 @@
+# =============================================================================
+# Production Reference Docker Compose
+# =============================================================================
+# This file serves as a REFERENCE for production configuration.
+# Actual production deployments use ECS Fargate via Terraform.
+#
+# This can be used for:
+#   - Local testing of production-like settings
+#   - Documentation of production requirements
+#   - docker-compose -f docker-compose.yml -f docker-compose.prod.yml up
+#
+# Required environment variables:
+#   - PROJECT_NAME: Project identifier (e.g., myapp)
+#   - ECR_REGISTRY: ECR registry URL
+#   - ECR_REPOSITORY: ECR repository name
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Application Server (Production Settings)
+  # ---------------------------------------------------------------------------
+  app:
+    image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG:-latest}
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1024M
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+    environment:
+      # Database (from secrets in production)
+      DATABASE_URL: ${DATABASE_URL}
+      DATABASE_USER: ${DATABASE_USER}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      # JWT (from secrets in production)
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ISSUER: ${JWT_ISSUER:-${PROJECT_NAME:-myapp}-backend}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-${PROJECT_NAME:-myapp}-client}
+      # Server
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      # Environment
+      APP_ENV: production
+      # Logging
+      LOG_LEVEL: INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: /ecs/${PROJECT_NAME:-myapp}-backend
+        awslogs-region: ${AWS_REGION:-ap-northeast-1}
+        awslogs-stream-prefix: ecs
+
+  # ---------------------------------------------------------------------------
+  # Note: Database in Production
+  # ---------------------------------------------------------------------------
+  # In production, we use AWS RDS PostgreSQL instead of a container.
+  # Database configuration is managed via Terraform (infra/terraform/modules/database/)
+  #
+  # RDS Benefits:
+  #   - Automated backups
+  #   - Multi-AZ for high availability
+  #   - Automatic failover
+  #   - Managed patching and maintenance

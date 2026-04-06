@@ -1,0 +1,33 @@
+# =============================================================================
+# Development Environment Variables Example
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in the values
+# NEVER commit terraform.tfvars to git!
+# =============================================================================
+
+project_name = "myapp"
+environment  = "dev"
+aws_region   = "ap-northeast-1"
+
+# VPC
+vpc_cidr = "10.0.0.0/16"
+
+# Database (use strong passwords in real deployments)
+db_name     = "myapp"
+db_username = "myapp_admin"
+db_password = "CHANGE_ME_STRONG_PASSWORD"
+
+# Secrets Manager ARNs (create secrets first, then fill in ARNs)
+db_credentials_secret_arn = ""
+jwt_secret_arn            = ""
+
+# Container Image
+# After building and pushing to ECR:
+# container_image = "123456789012.dkr.ecr.ap-northeast-1.amazonaws.com/myapp-backend:latest"
+container_image = "placeholder:latest"
+
+# Additional Tags
+tags = {
+  Owner      = "your-team"
+  CostCenter = "development"
+}

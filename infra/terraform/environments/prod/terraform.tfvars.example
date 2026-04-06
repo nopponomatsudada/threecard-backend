@@ -1,0 +1,35 @@
+# =============================================================================
+# Production Environment Variables Example
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in the values
+# NEVER commit terraform.tfvars to git!
+# =============================================================================
+
+project_name = "myapp"
+environment  = "prod"
+aws_region   = "ap-northeast-1"
+
+# VPC
+vpc_cidr = "10.2.0.0/16"
+
+# Database (use strong, randomly generated passwords)
+db_name     = "myapp"
+db_username = "myapp_admin"
+db_password = "CHANGE_ME_VERY_STRONG_RANDOM_PASSWORD"
+
+# Secrets Manager ARNs (REQUIRED for production)
+db_credentials_secret_arn = "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:myapp/prod/db-credentials"
+jwt_secret_arn            = "arn:aws:secretsmanager:ap-northeast-1:123456789012:secret:myapp/prod/jwt-secret"
+
+# Container Image
+container_image = "123456789012.dkr.ecr.ap-northeast-1.amazonaws.com/myapp-backend:prod"
+
+# SSL Certificate (REQUIRED for production)
+certificate_arn = "arn:aws:acm:ap-northeast-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Additional Tags
+tags = {
+  Owner      = "your-team"
+  CostCenter = "production"
+  Compliance = "required"
+}

@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # Prism Mock Server
+  # OpenAPI 仕様から自動でモックレスポンスを生成
+  # ============================================
+  mock-server:
+    image: stoplight/prism:4
+    container_name: ${PROJECT_NAME:-myapp}-mock-server
+    ports:
+      - "4010:4010"
+    volumes:
+      - ../api-spec:/api-spec:ro
+      - ./data:/data:ro
+    command: >
+      mock
+      --host 0.0.0.0
+      --port 4010
+      --dynamic
+      /api-spec/openapi.yml
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:4010/api/v1/users/me"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ============================================
+  # 静的モックデータを返したい場合のオプション
+  # --dynamic を外すと example の値を返す
+  # ============================================
+  mock-server-static:
+    image: stoplight/prism:4
+    container_name: ${PROJECT_NAME:-myapp}-mock-server-static
+    ports:
+      - "4011:4010"
+    volumes:
+      - ../api-spec:/api-spec:ro
+    command: >
+      mock
+      --host 0.0.0.0
+      --port 4010
+      /api-spec/openapi.yml
+    profiles:
+      - static
+
+# ============================================
+# ネットワーク設定
+# Android エミュレータ: 10.0.2.2:4010
+# iOS シミュレータ: localhost:4010
+# ============================================
+networks:
+  default:
+    name: ${PROJECT_NAME:-myapp}-network

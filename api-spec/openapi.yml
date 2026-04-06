@@ -1,0 +1,1138 @@
+openapi: 3.0.3
+info:
+  title: three card API
+  description: |
+    three card — 「本当に好きなものだけを、ベスト3で共有する」SNS の REST API 仕様。
+
+    ## JSON 規約
+    - フィールド名: camelCase
+    - URL パス: kebab-case
+    - クエリパラメータ: camelCase
+
+    ## レスポンス形式
+    - 成功時: `{ "data": {...}, "meta": {"timestamp": "..."} }`
+    - エラー時: `{ "error": {"code": "...", "message": "...", "details": {...}} }`
+  version: 1.0.0
+  contact:
+    name: three card Team
+
+servers:
+  - url: http://localhost:8080
+    description: Local development
+  - url: http://localhost:4010
+    description: Mock server (Prism)
+
+tags:
+  - name: auth
+    description: 認証 API
+  - name: tags
+    description: タグ API
+  - name: themes
+    description: テーマ API
+  - name: bests
+    description: ベスト3投稿 API
+  - name: discover
+    description: ランダム発見 API
+  - name: collections
+    description: コレクション API
+  - name: users
+    description: ユーザー API
+  - name: health
+    description: ヘルスチェック
+
+paths:
+  # ============================================
+  # Health
+  # ============================================
+  /health:
+    get:
+      tags: [health]
+      operationId: healthCheck
+      summary: ヘルスチェック
+      responses:
+        '200':
+          description: 正常
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  version:
+                    type: string
+                    example: "1.0.0"
+                  timestamp:
+                    type: string
+                    format: date-time
+
+  # ============================================
+  # Authentication
+  # ============================================
+  /api/v1/auth/signup:
+    post:
+      tags: [auth]
+      operationId: signup
+      summary: メール登録
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+            example:
+              email: "user@example.com"
+              password: "password123"
+      responses:
+        '201':
+          description: 登録成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                data:
+                  accessToken: "eyJhbGciOiJIUzI1NiJ9..."
+                  user:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    displayId: "u_7x2k9m"
+                meta:
+                  timestamp: "2025-01-01T00:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: メールログイン
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "user@example.com"
+              password: "password123"
+      responses:
+        '200':
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                data:
+                  accessToken: "eyJhbGciOiJIUzI1NiJ9..."
+                  user:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    displayId: "u_7x2k9m"
+                meta:
+                  timestamp: "2025-01-01T00:00:00Z"
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/google:
+    post:
+      tags: [auth]
+      operationId: googleLogin
+      summary: Google ログイン
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+            example:
+              idToken: "eyJhbGciOiJSUzI1NiJ9..."
+      responses:
+        '200':
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================
+  # Tags
+  # ============================================
+  /api/v1/tags:
+    get:
+      tags: [tags]
+      operationId: getTags
+      summary: タグ一覧
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTagList'
+              example:
+                data:
+                  - id: "music"
+                    name: "音楽"
+                  - id: "lifestyle"
+                    name: "暮らし"
+                  - id: "books"
+                    name: "本"
+                  - id: "fashion"
+                    name: "ファッション"
+                  - id: "food"
+                    name: "食"
+                  - id: "movies"
+                    name: "映画"
+                  - id: "travel"
+                    name: "旅"
+                  - id: "gadgets"
+                    name: "ガジェット"
+                meta:
+                  timestamp: "2025-01-01T00:00:00Z"
+
+  # ============================================
+  # Themes
+  # ============================================
+  /api/v1/themes:
+    get:
+      tags: [themes]
+      operationId: getThemes
+      summary: テーマ一覧（タグ絞込・ページネーション）
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TagIdFilter'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseThemeList'
+              example:
+                data:
+                  - id: "theme-001"
+                    title: "雨の日に聴きたい音楽"
+                    description: "しっとりした気分の日にぴったりな曲"
+                    tagId: "music"
+                    authorId: "user-001"
+                    bestCount: 5
+                    createdAt: "2025-01-01T00:00:00Z"
+                meta:
+                  timestamp: "2025-01-01T00:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [themes]
+      operationId: createTheme
+      summary: テーマ作成
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateThemeRequest'
+            example:
+              title: "雨の日に聴きたい音楽"
+              description: "しっとりした気分の日にぴったりな曲"
+              tagId: "music"
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTheme'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/themes/{themeId}:
+    get:
+      tags: [themes]
+      operationId: getThemeDetail
+      summary: テーマ詳細（カード一覧付き）
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ThemeId'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseThemeDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================
+  # Bests
+  # ============================================
+  /api/v1/themes/{themeId}/bests:
+    get:
+      tags: [bests]
+      operationId: getThemeBests
+      summary: テーマへの投稿一覧
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ThemeId'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBestList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [bests]
+      operationId: postBest
+      summary: ベスト3投稿
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ThemeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostBestRequest'
+            example:
+              items:
+                - rank: 1
+                  name: "Lofi Girl"
+                  description: "集中できるBGMの定番"
+                - rank: 2
+                  name: "Nujabes"
+                  description: null
+                - rank: 3
+                  name: "Tycho"
+                  description: "電子音と自然音の融合"
+      responses:
+        '201':
+          description: 投稿成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 同一テーマに既に投稿済み
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "ALREADY_POSTED"
+                  message: "このテーマには既に投稿しています"
+
+  /api/v1/users/me/bests:
+    get:
+      tags: [bests]
+      operationId: getMyBests
+      summary: 自分の投稿一覧
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBestList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================
+  # Discover
+  # ============================================
+  /api/v1/discover:
+    get:
+      tags: [discover]
+      operationId: getRandomCards
+      summary: ランダムカード取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TagIdFilter'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseDiscoverCardList'
+              example:
+                data:
+                  - id: "best-001"
+                    themeId: "theme-001"
+                    themeTitle: "雨の日に聴きたい音楽"
+                    tagName: "音楽"
+                    authorDisplayId: "u_7x2k9m"
+                    items:
+                      - rank: 1
+                        name: "Lofi Girl"
+                        description: "集中できるBGMの定番"
+                      - rank: 2
+                        name: "Nujabes"
+                        description: null
+                      - rank: 3
+                        name: "Tycho"
+                        description: "電子音と自然音の融合"
+                    isBookmarked: false
+                    createdAt: "2025-01-01T00:00:00Z"
+                meta:
+                  timestamp: "2025-01-01T00:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================
+  # Collections
+  # ============================================
+  /api/v1/collections:
+    get:
+      tags: [collections]
+      operationId: getCollections
+      summary: コレクション一覧
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCollectionList'
+              example:
+                data:
+                  - id: "col-001"
+                    title: "お気に入りの音楽"
+                    cardCount: 3
+                    createdAt: "2025-01-01T00:00:00Z"
+                meta:
+                  timestamp: "2025-01-01T00:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags: [collections]
+      operationId: createCollection
+      summary: コレクション作成
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCollectionRequest'
+            example:
+              title: "お気に入りの音楽"
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCollection'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: コレクション上限到達
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "COLLECTION_LIMIT_REACHED"
+                  message: "無料プランは3個まで。Plusにアップグレードして無制限に。"
+
+  /api/v1/collections/{collectionId}:
+    delete:
+      tags: [collections]
+      operationId: deleteCollection
+      summary: コレクション削除
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/collections/{collectionId}/cards:
+    get:
+      tags: [collections]
+      operationId: getCollectionCards
+      summary: コレクション内カード一覧
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBestList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    post:
+      tags: [collections]
+      operationId: addCardToCollection
+      summary: カードをコレクションに保存
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCardRequest'
+            example:
+              bestId: "best-001"
+      responses:
+        '201':
+          description: 保存成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCollectionCard'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 重複保存
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: "DUPLICATE_BOOKMARK"
+                  message: "既に保存済みです"
+
+  /api/v1/collections/{collectionId}/cards/{bestId}:
+    delete:
+      tags: [collections]
+      operationId: removeCardFromCollection
+      summary: カードをコレクションから削除
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/CollectionId'
+        - $ref: '#/components/parameters/BestId'
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================
+  # Users
+  # ============================================
+  /api/v1/users/me:
+    get:
+      tags: [users]
+      operationId: getMyProfile
+      summary: 自分のプロフィール
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseUserProfile'
+              example:
+                data:
+                  id: "550e8400-e29b-41d4-a716-446655440000"
+                  displayId: "u_7x2k9m"
+                  bestCount: 12
+                  collectionCount: 2
+                  plan: "free"
+                  createdAt: "2025-01-01T00:00:00Z"
+                meta:
+                  timestamp: "2025-01-01T00:00:00Z"
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+components:
+  # ============================================
+  # Security Schemes
+  # ============================================
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  # ============================================
+  # Parameters
+  # ============================================
+  parameters:
+    ThemeId:
+      name: themeId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: "theme-001"
+
+    CollectionId:
+      name: collectionId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: "col-001"
+
+    BestId:
+      name: bestId
+      in: path
+      required: true
+      schema:
+        type: string
+      example: "best-001"
+
+    TagIdFilter:
+      name: tagId
+      in: query
+      required: false
+      description: タグフィルタリング
+      schema:
+        type: string
+      example: "music"
+
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 20
+        minimum: 1
+        maximum: 50
+
+    Offset:
+      name: offset
+      in: query
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+
+  # ============================================
+  # Responses
+  # ============================================
+  responses:
+    BadRequest:
+      description: リクエストが不正
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "VALIDATION_ERROR"
+              message: "入力値が不正です"
+
+    Unauthorized:
+      description: 認証が必要
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "UNAUTHORIZED"
+              message: "認証が必要です"
+
+    NotFound:
+      description: リソースが見つからない
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "NOT_FOUND"
+              message: "リソースが見つかりません"
+
+    Conflict:
+      description: リソースが競合
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "EMAIL_ALREADY_EXISTS"
+              message: "このメールアドレスは既に使用されています"
+
+  # ============================================
+  # Schemas
+  # ============================================
+  schemas:
+    # --- Auth ---
+    SignupRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    GoogleLoginRequest:
+      type: object
+      required: [idToken]
+      properties:
+        idToken:
+          type: string
+          description: Google ID Token
+
+    AuthResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [accessToken, user]
+          properties:
+            accessToken:
+              type: string
+              description: JWT アクセストークン
+            user:
+              $ref: '#/components/schemas/AuthUser'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    AuthUser:
+      type: object
+      required: [id, displayId]
+      properties:
+        id:
+          type: string
+        displayId:
+          type: string
+          description: "u_ + ランダム英数字6文字"
+
+    # --- Tag ---
+    TagDto:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: string
+          description: タグID（例: music, books）
+        name:
+          type: string
+          description: 表示名（例: 音楽, 本）
+
+    # --- Theme ---
+    ThemeDto:
+      type: object
+      required: [id, title, tagId, authorId, bestCount, createdAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        tagId:
+          type: string
+        authorId:
+          type: string
+        bestCount:
+          type: integer
+          description: 投稿されたカード数
+        createdAt:
+          type: string
+          format: date-time
+
+    ThemeDetailDto:
+      type: object
+      required: [id, title, tagId, authorId, bestCount, bests, createdAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        tagId:
+          type: string
+        authorId:
+          type: string
+        bestCount:
+          type: integer
+        bests:
+          type: array
+          items:
+            $ref: '#/components/schemas/BestDto'
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateThemeRequest:
+      type: object
+      required: [title, tagId]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 140
+        tagId:
+          type: string
+
+    # --- Best ---
+    BestDto:
+      type: object
+      required: [id, themeId, authorId, items, createdAt]
+      properties:
+        id:
+          type: string
+        themeId:
+          type: string
+        authorId:
+          type: string
+        authorDisplayId:
+          type: string
+        items:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/BestItemDto'
+        createdAt:
+          type: string
+          format: date-time
+
+    BestItemDto:
+      type: object
+      required: [rank, name]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+          maximum: 3
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+          maxLength: 140
+
+    PostBestRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            type: object
+            required: [rank, name]
+            properties:
+              rank:
+                type: integer
+                minimum: 1
+                maximum: 3
+              name:
+                type: string
+              description:
+                type: string
+                maxLength: 140
+
+    # --- Discover ---
+    DiscoverCardDto:
+      type: object
+      required: [id, themeId, themeTitle, tagName, authorDisplayId, items, isBookmarked, createdAt]
+      properties:
+        id:
+          type: string
+        themeId:
+          type: string
+        themeTitle:
+          type: string
+        tagName:
+          type: string
+        authorDisplayId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/BestItemDto'
+        isBookmarked:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    # --- Collection ---
+    CollectionDto:
+      type: object
+      required: [id, title, cardCount, createdAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        cardCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    CreateCollectionRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+
+    AddCardRequest:
+      type: object
+      required: [bestId]
+      properties:
+        bestId:
+          type: string
+
+    CollectionCardDto:
+      type: object
+      required: [id, collectionId, bestId]
+      properties:
+        id:
+          type: string
+        collectionId:
+          type: string
+        bestId:
+          type: string
+
+    # --- User ---
+    UserProfileDto:
+      type: object
+      required: [id, displayId, bestCount, collectionCount, plan, createdAt]
+      properties:
+        id:
+          type: string
+        displayId:
+          type: string
+        bestCount:
+          type: integer
+        collectionCount:
+          type: integer
+        plan:
+          type: string
+          enum: [free, plus]
+        createdAt:
+          type: string
+          format: date-time
+
+    # --- Common ---
+    Meta:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+
+    ErrorDetail:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties:
+            type: string
+
+    # --- API Response Wrappers ---
+    ApiResponseTagList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseThemeList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThemeDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseTheme:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ThemeDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseThemeDetail:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/ThemeDetailDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseBestList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BestDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseBest:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/BestDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseDiscoverCardList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiscoverCardDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseCollectionList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CollectionDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseCollection:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/CollectionDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseCollectionCard:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/CollectionCardDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseUserProfile:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/UserProfileDto'
+        meta:
+          $ref: '#/components/schemas/Meta'

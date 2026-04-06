@@ -1,0 +1,91 @@
+# =============================================================================
+# Local Development Docker Compose
+# =============================================================================
+# Usage:
+#   cd infra/docker
+#   docker-compose up -d
+#
+# Customization:
+#   Set PROJECT_NAME environment variable or create .env file:
+#   PROJECT_NAME=myapp docker-compose up -d
+#
+# Services:
+#   - app: Ktor application (port 8080)
+#   - db: PostgreSQL database (port 5432)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Application Server
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile
+    container_name: ${PROJECT_NAME:-myapp}-backend
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      # Database
+      DATABASE_URL: jdbc:postgresql://db:5432/${DB_NAME:-myapp}
+      DATABASE_USER: ${DB_USER:-postgres}
+      DATABASE_PASSWORD: ${DB_PASSWORD:-postgres}
+      # JWT
+      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-that-is-at-least-32-characters-long}
+      JWT_ISSUER: ${JWT_ISSUER:-myapp-backend}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-myapp-client}
+      # Server
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      # Environment
+      APP_ENV: development
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL Database
+  # ---------------------------------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: ${PROJECT_NAME:-myapp}-db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-myapp}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-myapp}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  backend-network:
+    name: ${PROJECT_NAME:-myapp}-network
+    driver: bridge
