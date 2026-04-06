@@ -6,12 +6,8 @@ import io.ktor.server.routing.*
 
 fun Application.configureRouting() {
     routing {
-        // Health check
         healthRoutes()
-
-        // Add your routes here as you implement them
-        // Example:
-        // authRoutes()
-        // userRoutes()
+        authRoutes()
+        userRoutes()
     }
 }

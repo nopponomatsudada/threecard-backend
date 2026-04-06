@@ -70,98 +70,50 @@ paths:
   # ============================================
   # Authentication
   # ============================================
-  /api/v1/auth/signup:
+  /api/v1/auth/device:
     post:
       tags: [auth]
-      operationId: signup
-      summary: メール登録
+      operationId: deviceAuth
+      summary: デバイストークン認証（Phase 1）
+      description: |
+        デバイスIDでユーザーを識別。未登録のデバイスIDの場合は自動でユーザーを作成する。
+        クライアントは初回起動時にUUIDを生成し、ローカルに保存して使用する。
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SignupRequest'
+              $ref: '#/components/schemas/DeviceAuthRequest'
             example:
-              email: "user@example.com"
-              password: "password123"
+              deviceId: "550e8400-e29b-41d4-a716-446655440000"
       responses:
+        '200':
+          description: 既存ユーザーでログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                data:
+                  accessToken: "eyJhbGciOiJIUzI1NiJ9..."
+                  user:
+                    id: "550e8400-e29b-41d4-a716-446655440000"
+                    displayId: "u_7x2k9m"
+                meta:
+                  timestamp: "2025-01-01T00:00:00Z"
         '201':
-          description: 登録成功
+          description: 新規ユーザー作成成功
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
-              example:
-                data:
-                  accessToken: "eyJhbGciOiJIUzI1NiJ9..."
-                  user:
-                    id: "550e8400-e29b-41d4-a716-446655440000"
-                    displayId: "u_7x2k9m"
-                meta:
-                  timestamp: "2025-01-01T00:00:00Z"
         '400':
           $ref: '#/components/responses/BadRequest'
-        '409':
-          $ref: '#/components/responses/Conflict'
 
-  /api/v1/auth/login:
-    post:
-      tags: [auth]
-      operationId: login
-      summary: メールログイン
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-            example:
-              email: "user@example.com"
-              password: "password123"
-      responses:
-        '200':
-          description: ログイン成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-              example:
-                data:
-                  accessToken: "eyJhbGciOiJIUzI1NiJ9..."
-                  user:
-                    id: "550e8400-e29b-41d4-a716-446655440000"
-                    displayId: "u_7x2k9m"
-                meta:
-                  timestamp: "2025-01-01T00:00:00Z"
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /api/v1/auth/google:
-    post:
-      tags: [auth]
-      operationId: googleLogin
-      summary: Google ログイン
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GoogleLoginRequest'
-            example:
-              idToken: "eyJhbGciOiJSUzI1NiJ9..."
-      responses:
-        '200':
-          description: ログイン成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+  # Phase 2: メール登録・ログイン・Google ログイン
+  # /api/v1/auth/signup:
+  # /api/v1/auth/login:
+  # /api/v1/auth/google:
 
   # ============================================
   # Tags
@@ -724,34 +676,13 @@ components:
   # ============================================
   schemas:
     # --- Auth ---
-    SignupRequest:
+    DeviceAuthRequest:
       type: object
-      required: [email, password]
+      required: [deviceId]
       properties:
-        email:
+        deviceId:
           type: string
-          format: email
-        password:
-          type: string
-          minLength: 8
-
-    LoginRequest:
-      type: object
-      required: [email, password]
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-
-    GoogleLoginRequest:
-      type: object
-      required: [idToken]
-      properties:
-        idToken:
-          type: string
-          description: Google ID Token
+          description: クライアントが生成したデバイスUUID
 
     AuthResponse:
       type: object

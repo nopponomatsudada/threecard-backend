@@ -1,10 +1,14 @@
 package com.appmaster.plugins
 
+import com.appmaster.data.entity.UsersTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
 import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 
+@OptIn(kotlin.time.ExperimentalTime::class)
 fun Application.configureDatabase() {
     val dbUrl = configValue("database.url", "DATABASE_URL", "jdbc:postgresql://localhost:5432/appmaster")
     val dbUser = configValue("database.user", "DATABASE_USER", "appmaster")
@@ -28,12 +32,12 @@ fun Application.configureDatabase() {
     try {
         Database.connect(HikariDataSource(config))
         log.info("Database connection established successfully")
+
+        transaction {
+            SchemaUtils.createMissingTablesAndColumns(UsersTable)
+        }
+        log.info("Database tables created/verified successfully")
     } catch (e: Exception) {
         log.warn("Database connection failed: ${e.message}. App will continue without database.")
     }
 }
-
-private fun Application.configValue(configKey: String, envVar: String, default: String): String =
-    environment.config.propertyOrNull(configKey)?.getString()
-        ?: System.getenv(envVar)
-        ?: default

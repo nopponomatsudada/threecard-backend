@@ -17,5 +17,5 @@ jwt:
   issuer: appmaster
   audience: appmaster-app
   realm: AppMaster
-  accessTokenExpiration: 900000   # 15 minutes in ms
-  refreshTokenExpiration: 604800000  # 7 days in ms
+  accessTokenExpiration: 2592000000  # 30 days in ms
+  refreshTokenExpiration: 604800000  # 7 days in ms (reserved for Phase 2)
