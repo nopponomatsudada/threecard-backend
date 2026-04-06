@@ -11,5 +11,6 @@ fun Application.configureRouting() {
         userRoutes()
         tagRoutes()
         themeRoutes()
+        bestRoutes()
     }
 }

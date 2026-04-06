@@ -1,14 +1,19 @@
 package com.appmaster.di
 
+import com.appmaster.data.dao.BestDao
 import com.appmaster.data.dao.ThemeDao
 import com.appmaster.data.dao.UserDao
+import com.appmaster.data.repository.BestRepositoryImpl
 import com.appmaster.data.repository.ThemeRepositoryImpl
 import com.appmaster.data.repository.UserRepositoryImpl
 import com.appmaster.data.service.JwtTokenProvider
+import com.appmaster.domain.repository.BestRepository
 import com.appmaster.domain.repository.ThemeRepository
 import com.appmaster.domain.repository.UserRepository
 import com.appmaster.domain.service.TokenProvider
 import com.appmaster.domain.usecase.auth.DeviceAuthUseCase
+import com.appmaster.domain.usecase.best.GetBestsByThemeUseCase
+import com.appmaster.domain.usecase.best.PostBestUseCase
 import com.appmaster.domain.usecase.theme.CreateThemeUseCase
 import com.appmaster.domain.usecase.theme.GetThemeDetailUseCase
 import com.appmaster.domain.usecase.theme.GetThemesUseCase
@@ -41,4 +46,10 @@ fun appModule(environment: ApplicationEnvironment) = module {
     single { GetThemesUseCase(get()) }
     single { CreateThemeUseCase(get()) }
     single { GetThemeDetailUseCase(get()) }
+
+    // Bests
+    single { BestDao() }
+    single<BestRepository> { BestRepositoryImpl(get()) }
+    single { PostBestUseCase(get(), get()) }
+    single { GetBestsByThemeUseCase(get(), get()) }
 }
