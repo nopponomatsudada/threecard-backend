@@ -1,5 +1,6 @@
 package com.appmaster.plugins
 
+import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -34,7 +35,7 @@ fun Application.configureDatabase() {
         log.info("Database connection established successfully")
 
         transaction {
-            SchemaUtils.createMissingTablesAndColumns(UsersTable)
+            SchemaUtils.createMissingTablesAndColumns(UsersTable, ThemesTable)
         }
         log.info("Database tables created/verified successfully")
     } catch (e: Exception) {

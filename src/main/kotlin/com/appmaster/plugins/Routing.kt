@@ -9,5 +9,7 @@ fun Application.configureRouting() {
         healthRoutes()
         authRoutes()
         userRoutes()
+        tagRoutes()
+        themeRoutes()
     }
 }
