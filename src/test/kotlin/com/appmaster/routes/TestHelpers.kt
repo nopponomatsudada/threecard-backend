@@ -65,7 +65,7 @@ fun fullTestModule() = module {
         )
     }
     single { DeviceAuthUseCase(get()) }
-    single { GetMyProfileUseCase(get()) }
+    single { GetMyProfileUseCase(get(), get(), get()) }
     single { ThemeDao() }
     single<ThemeRepository> { ThemeRepositoryImpl(get()) }
     single { GetThemesUseCase(get()) }

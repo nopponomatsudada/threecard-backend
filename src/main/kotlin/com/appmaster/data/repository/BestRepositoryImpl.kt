@@ -22,5 +22,8 @@ class BestRepositoryImpl(
     override suspend fun findByAuthorAndTheme(authorId: UserId, themeId: ThemeId): Best? =
         dao.findByAuthorAndTheme(authorId, themeId)
 
+    override suspend fun countByAuthorId(authorId: UserId): Int =
+        dao.countByAuthorId(authorId)
+
     override suspend fun save(best: Best): Best = dao.insert(best)
 }

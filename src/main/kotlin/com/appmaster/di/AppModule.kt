@@ -52,7 +52,7 @@ fun appModule(environment: ApplicationEnvironment) = module {
     single { UserDao() }
     single<UserRepository> { UserRepositoryImpl(get()) }
     single { DeviceAuthUseCase(get()) }
-    single { GetMyProfileUseCase(get()) }
+    single { GetMyProfileUseCase(get(), get(), get()) }
 
     // Themes
     single { ThemeDao() }

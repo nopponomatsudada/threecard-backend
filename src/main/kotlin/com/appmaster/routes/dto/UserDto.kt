@@ -1,5 +1,8 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.appmaster.routes.dto
 
+import com.appmaster.domain.usecase.user.ProfileWithStats
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -10,4 +13,13 @@ data class UserProfileResponse(
     val collectionCount: Int,
     val plan: String,
     val createdAt: String
+)
+
+fun ProfileWithStats.toDto() = UserProfileResponse(
+    id = user.id.value,
+    displayId = user.displayId.value,
+    bestCount = bestCount,
+    collectionCount = collectionCount,
+    plan = user.plan.name.lowercase(),
+    createdAt = user.createdAt.toString()
 )

@@ -2,10 +2,20 @@
 
 package com.appmaster.routes
 
+import com.appmaster.data.dao.BestDao
+import com.appmaster.data.dao.CollectionDao
 import com.appmaster.data.dao.UserDao
+import com.appmaster.data.entity.BestItemsTable
+import com.appmaster.data.entity.BestsTable
+import com.appmaster.data.entity.CollectionsTable
+import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
+import com.appmaster.data.repository.BestRepositoryImpl
+import com.appmaster.data.repository.CollectionRepositoryImpl
 import com.appmaster.data.repository.UserRepositoryImpl
 import com.appmaster.data.service.JwtTokenProvider
+import com.appmaster.domain.repository.BestRepository
+import com.appmaster.domain.repository.CollectionRepository
 import com.appmaster.domain.repository.UserRepository
 import com.appmaster.domain.service.TokenProvider
 import com.appmaster.domain.usecase.auth.DeviceAuthUseCase
@@ -43,14 +53,14 @@ class AuthRoutesTest {
     fun setup() {
         Database.connect("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
         transaction {
-            SchemaUtils.create(UsersTable)
+            SchemaUtils.create(UsersTable, ThemesTable, BestsTable, BestItemsTable, CollectionsTable)
         }
     }
 
     @AfterTest
     fun teardown() {
         transaction {
-            SchemaUtils.drop(UsersTable)
+            SchemaUtils.drop(CollectionsTable, BestItemsTable, BestsTable, ThemesTable, UsersTable)
         }
     }
 
@@ -72,8 +82,12 @@ class AuthRoutesTest {
                             accessTokenExpirationMs = 2592000000L
                         )
                     }
+                    single { BestDao() }
+                    single<BestRepository> { BestRepositoryImpl(get()) }
+                    single { CollectionDao() }
+                    single<CollectionRepository> { CollectionRepositoryImpl(get()) }
                     single { DeviceAuthUseCase(get()) }
-                    single { GetMyProfileUseCase(get()) }
+                    single { GetMyProfileUseCase(get(), get(), get()) }
                 })
             }
             routing {

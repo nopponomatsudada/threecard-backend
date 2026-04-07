@@ -10,5 +10,6 @@ interface BestRepository {
     suspend fun findByThemeId(themeId: ThemeId, limit: Int, offset: Int): List<Best>
     suspend fun findByAuthorId(authorId: UserId, limit: Int, offset: Int): List<Best>
     suspend fun findByAuthorAndTheme(authorId: UserId, themeId: ThemeId): Best?
+    suspend fun countByAuthorId(authorId: UserId): Int
     suspend fun save(best: Best): Best
 }

@@ -53,6 +53,12 @@ class BestDao {
         attachItemsToBests(listOf(best)).first()
     }
 
+    suspend fun countByAuthorId(authorId: UserId): Int = dbQuery {
+        BestsTable.selectAll()
+            .where { BestsTable.authorId eq authorId.value }
+            .count().toInt()
+    }
+
     suspend fun insert(best: Best): Best = dbQuery {
         BestsTable.insert {
             it[id] = best.id.value
