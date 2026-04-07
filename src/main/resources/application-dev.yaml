@@ -1,0 +1,27 @@
+ktor:
+  development: true
+  deployment:
+    port: 8080
+  application:
+    modules:
+      - com.appmaster.ApplicationKt.module
+
+database:
+  url: ${?DATABASE_URL}
+  user: ${?DATABASE_USER}
+  password: ${?DATABASE_PASSWORD}
+
+jwt:
+  # Dev only — overridden in production via JWT_SECRET env var.
+  secret: dev-secret-change-in-production
+  issuer: appmaster
+  audience: appmaster-app
+  realm: AppMaster
+  accessTokenExpiration: 900000
+  refreshTokenExpiration: 604800000
+
+cors:
+  allowedHosts:
+    - "http://localhost:3000"
+    - "http://localhost:5173"
+    - "http://10.0.2.2:8080"

@@ -2,19 +2,13 @@ package com.appmaster.domain.usecase.user
 
 import com.appmaster.domain.error.DomainError
 import com.appmaster.domain.error.DomainException
-import com.appmaster.domain.model.entity.User
+import com.appmaster.domain.model.entity.ProfileWithStats
 import com.appmaster.domain.model.valueobject.UserId
 import com.appmaster.domain.repository.BestRepository
 import com.appmaster.domain.repository.CollectionRepository
 import com.appmaster.domain.repository.UserRepository
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
-
-data class ProfileWithStats(
-    val user: User,
-    val bestCount: Int,
-    val collectionCount: Int
-)
 
 class GetMyProfileUseCase(
     private val userRepository: UserRepository,

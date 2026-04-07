@@ -2,6 +2,7 @@ package com.appmaster.domain.usecase.collection
 
 import com.appmaster.domain.model.entity.Best
 import com.appmaster.domain.model.valueobject.CollectionId
+import com.appmaster.domain.model.valueobject.Pagination
 import com.appmaster.domain.model.valueobject.UserId
 import com.appmaster.domain.repository.CollectionRepository
 
@@ -16,10 +17,9 @@ class GetCollectionCardsUseCase(
     )
 
     suspend operator fun invoke(params: Params): List<Best> {
-        collectionRepository.findOwnedCollection(params.collectionId, params.userId)
+        collectionRepository.assertOwnership(params.collectionId, params.userId)
 
-        val clampedLimit = params.limit.coerceIn(1, 50)
-        val safeOffset = maxOf(0, params.offset)
-        return collectionRepository.getCards(params.collectionId, clampedLimit, safeOffset)
+        val pagination = Pagination.of(params.limit, params.offset)
+        return collectionRepository.getCards(params.collectionId, pagination.limit, pagination.offset)
     }
 }

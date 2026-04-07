@@ -35,8 +35,8 @@ fun Route.collectionRoutes() {
             get {
                 val userId = call.requireUserId()
                 val collectionsWithCounts = getCollectionsUseCase(userId)
-                call.respond(ApiResponse(data = collectionsWithCounts.map { (collection, cardCount) ->
-                    collection.toDto(cardCount)
+                call.respond(ApiResponse(data = collectionsWithCounts.map { item ->
+                    item.collection.toDto(item.cardCount)
                 }))
             }
 

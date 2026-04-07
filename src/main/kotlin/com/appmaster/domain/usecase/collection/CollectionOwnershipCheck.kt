@@ -7,7 +7,12 @@ import com.appmaster.domain.model.valueobject.CollectionId
 import com.appmaster.domain.model.valueobject.UserId
 import com.appmaster.domain.repository.CollectionRepository
 
-internal suspend fun CollectionRepository.findOwnedCollection(
+/**
+ * Looks up a collection and verifies the caller owns it. Throws `NotFound`
+ * (not `Forbidden`) for both "doesn't exist" and "not yours" so callers
+ * cannot probe for the existence of other users' collections.
+ */
+internal suspend fun CollectionRepository.requireOwnedCollection(
     collectionId: CollectionId,
     userId: UserId
 ): Collection {
@@ -17,4 +22,12 @@ internal suspend fun CollectionRepository.findOwnedCollection(
         throw DomainException(DomainError.NotFound("コレクション"))
     }
     return collection
+}
+
+/** Side-effect-only variant: throws if the caller does not own the collection. */
+internal suspend fun CollectionRepository.assertOwnership(
+    collectionId: CollectionId,
+    userId: UserId
+) {
+    requireOwnedCollection(collectionId, userId)
 }

@@ -13,7 +13,7 @@ class DeleteCollectionUseCase(
     )
 
     suspend operator fun invoke(params: Params) {
-        collectionRepository.findOwnedCollection(params.collectionId, params.userId)
+        collectionRepository.assertOwnership(params.collectionId, params.userId)
         collectionRepository.deleteById(params.collectionId)
     }
 }

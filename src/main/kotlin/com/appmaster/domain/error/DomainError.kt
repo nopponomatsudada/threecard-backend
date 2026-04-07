@@ -17,6 +17,8 @@ sealed class DomainError(
     data object NetworkError : DomainError("NETWORK_ERROR", "接続できませんでした")
     data object Unauthorized : DomainError("UNAUTHORIZED", "認証が必要です")
     data object InvalidCredentials : DomainError("INVALID_CREDENTIALS", "メールアドレスまたはパスワードが正しくありません")
+    data object InvalidDeviceCredentials : DomainError("INVALID_DEVICE_CREDENTIALS", "デバイス認証に失敗しました")
+    data object InvalidRefreshToken : DomainError("INVALID_REFRESH_TOKEN", "セッションの有効期限が切れました。もう一度サインインしてください")
     data object EmailAlreadyExists : DomainError("EMAIL_ALREADY_EXISTS", "このメールアドレスは既に使用されています")
 
     // Content Validation Errors (2xxx)

@@ -2,7 +2,7 @@
 
 package com.appmaster.routes.dto
 
-import com.appmaster.domain.usecase.user.ProfileWithStats
+import com.appmaster.domain.model.entity.ProfileWithStats
 import kotlinx.serialization.Serializable
 
 @Serializable

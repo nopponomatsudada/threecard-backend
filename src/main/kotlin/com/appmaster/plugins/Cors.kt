@@ -23,26 +23,30 @@ fun Application.configureCors() {
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Accept)
 
-        if (isDevelopment && allowedHosts.isEmpty()) {
-            // Development mode: allow any host for local testing
-            anyHost()
-            appEnvironment.log.warn("CORS: anyHost() enabled - DO NOT use in production!")
-        } else if (allowedHosts.isNotEmpty()) {
-            // Production mode: only allow specified hosts
+        if (allowedHosts.isNotEmpty()) {
             allowedHosts.forEach { host ->
                 val trimmed = host.trim()
-                if (trimmed.startsWith("https://")) {
-                    allowHost(trimmed.removePrefix("https://"), schemes = listOf("https"))
-                } else if (trimmed.startsWith("http://")) {
-                    allowHost(trimmed.removePrefix("http://"), schemes = listOf("http"))
-                } else {
-                    allowHost(trimmed, schemes = listOf("https"))
+                when {
+                    trimmed.startsWith("https://") ->
+                        allowHost(trimmed.removePrefix("https://"), schemes = listOf("https"))
+                    trimmed.startsWith("http://") ->
+                        allowHost(trimmed.removePrefix("http://"), schemes = listOf("http"))
+                    else ->
+                        allowHost(trimmed, schemes = listOf("https"))
                 }
             }
-            appEnvironment.log.info("CORS: Allowed hosts: $allowedHosts")
+            appEnvironment.log.info("CORS: allowed hosts: $allowedHosts")
+        } else if (isDevelopment) {
+            // Dev fallback — explicit local origins only. NEVER anyHost(),
+            // because we accept Authorization headers.
+            allowHost("localhost:8080")
+            allowHost("localhost:3000")
+            allowHost("localhost:5173")
+            allowHost("127.0.0.1:8080")
+            allowHost("10.0.2.2:8080") // Android emulator
+            appEnvironment.log.warn("CORS: dev mode — restricted to localhost / 10.0.2.2")
         } else {
-            // Production without configured hosts - fail safe
-            appEnvironment.log.error("CORS: No allowed hosts configured in production mode!")
+            appEnvironment.log.error("CORS: no allowed hosts configured in production mode")
             throw IllegalStateException("CORS_ALLOWED_HOSTS must be configured in production")
         }
     }

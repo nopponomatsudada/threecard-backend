@@ -1,5 +1,5 @@
 ktor:
-  development: true
+  development: false
   deployment:
     port: 8080
     port: ${?PORT}
@@ -17,5 +17,7 @@ jwt:
   issuer: appmaster
   audience: appmaster-app
   realm: AppMaster
-  accessTokenExpiration: 2592000000  # 30 days in ms
-  refreshTokenExpiration: 604800000  # 7 days in ms (reserved for Phase 2)
+  # 15 minutes — short-lived access token, refreshed via /auth/refresh.
+  accessTokenExpiration: 900000
+  # 7 days — refresh token TTL (rotated on every use).
+  refreshTokenExpiration: 604800000

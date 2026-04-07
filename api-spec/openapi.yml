@@ -74,46 +74,106 @@ paths:
     post:
       tags: [auth]
       operationId: deviceAuth
-      summary: デバイストークン認証（Phase 1）
+      summary: デバイス認証（Phase 1）
       description: |
-        デバイスIDでユーザーを識別。未登録のデバイスIDの場合は自動でユーザーを作成する。
-        クライアントは初回起動時にUUIDを生成し、ローカルに保存して使用する。
+        デバイス単位の認証エンドポイント。
+
+        - **初回（bootstrap）**: クライアントは `deviceId` のみを送る。サーバは
+          `deviceSecret`（高エントロピーランダム文字列）を生成し、その BCrypt
+          ハッシュを保存して、`deviceSecret` を一度だけ平文で返す。クライアント
+          は安全なストレージ（iOS Keychain / Android EncryptedSharedPreferences）
+          に保存する。
+        - **2回目以降（login）**: クライアントは `deviceId` と保存しておいた
+          `deviceSecret` の両方を送る。サーバは BCrypt 検証を行う。`deviceSecret`
+          が欠如または不一致の場合は `INVALID_DEVICE_CREDENTIALS` (401)。
+
+        どちらのパスでも、新しい access token + refresh token のペアを発行する。
+        既存デバイスに対して `deviceSecret` を再発行することは絶対にない。
       requestBody:
         required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/DeviceAuthRequest'
-            example:
-              deviceId: "550e8400-e29b-41d4-a716-446655440000"
+            examples:
+              bootstrap:
+                summary: 初回（deviceSecret なし）
+                value:
+                  deviceId: "550e8400-e29b-41d4-a716-446655440000"
+              login:
+                summary: 2回目以降
+                value:
+                  deviceId: "550e8400-e29b-41d4-a716-446655440000"
+                  deviceSecret: "Xy9...32-byte-base64url..."
       responses:
         '200':
-          description: 既存ユーザーでログイン成功
+          description: 既存デバイスでログイン成功（deviceSecret は返らない）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
-              example:
-                data:
-                  accessToken: "eyJhbGciOiJIUzI1NiJ9..."
-                  user:
-                    id: "550e8400-e29b-41d4-a716-446655440000"
-                    displayId: "u_7x2k9m"
-                meta:
-                  timestamp: "2025-01-01T00:00:00Z"
         '201':
-          description: 新規ユーザー作成成功
+          description: 新規デバイス bootstrap 成功（deviceSecret を一度だけ返す）
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '401':
+          description: deviceSecret 不正 / 欠如
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
-  # Phase 2: メール登録・ログイン・Google ログイン
-  # /api/v1/auth/signup:
-  # /api/v1/auth/login:
-  # /api/v1/auth/google:
+  /api/v1/auth/refresh:
+    post:
+      tags: [auth]
+      operationId: refreshToken
+      summary: アクセストークン更新
+      description: |
+        Refresh token を消費して新しい access + refresh token のペアを発行する。
+        Refresh token は使い捨て（rotation）。提示された refresh token は revoke
+        され、新しい refresh token が返る。
+
+        セキュリティ: 既に revoke 済みの refresh token を再提示すると、トークン
+        盗難の兆候とみなし、そのユーザーの全 refresh token を revoke する。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: 新しいトークンペア
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshTokenResponse'
+        '401':
+          description: refresh token が無効 / 期限切れ / revoke 済み
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: ログアウト
+      description: |
+        現在の access JWT を blocklist に登録（元の `exp` まで）し、当該ユーザー
+        の全 refresh token を revoke する。
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: ログアウト完了
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   # ============================================
   # Tags
@@ -123,6 +183,8 @@ paths:
       tags: [tags]
       operationId: getTags
       summary: タグ一覧
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: 成功
@@ -683,6 +745,11 @@ components:
         deviceId:
           type: string
           description: クライアントが生成したデバイスUUID
+        deviceSecret:
+          type: string
+          nullable: true
+          description: |
+            初回（bootstrap）は省略。2回目以降は bootstrap 時に返された値を必ず送る。
 
     AuthResponse:
       type: object
@@ -690,13 +757,51 @@ components:
       properties:
         data:
           type: object
-          required: [accessToken, user]
+          required: [accessToken, refreshToken, expiresIn, user]
           properties:
             accessToken:
               type: string
-              description: JWT アクセストークン
+              description: 短命の JWT アクセストークン（15分）
+            refreshToken:
+              type: string
+              description: 不透明な refresh token（7日、回転）
+            expiresIn:
+              type: integer
+              format: int64
+              description: アクセストークンの残り有効秒数
+            deviceSecret:
+              type: string
+              nullable: true
+              description: |
+                bootstrap 応答（HTTP 201）時のみ存在。クライアントは安全に保存し、
+                以後の `/auth/device` 呼び出しで送ること。サーバは再発行しない。
             user:
               $ref: '#/components/schemas/AuthUser'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    RefreshTokenRequest:
+      type: object
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    RefreshTokenResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [accessToken, refreshToken, expiresIn]
+          properties:
+            accessToken:
+              type: string
+            refreshToken:
+              type: string
+            expiresIn:
+              type: integer
+              format: int64
         meta:
           $ref: '#/components/schemas/Meta'
 

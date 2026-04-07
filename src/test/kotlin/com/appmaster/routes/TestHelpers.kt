@@ -5,21 +5,40 @@ package com.appmaster.routes
 import com.appmaster.data.dao.BestDao
 import com.appmaster.data.dao.CollectionDao
 import com.appmaster.data.dao.DiscoverDao
+import com.appmaster.data.dao.JwtBlocklistDao
+import com.appmaster.data.dao.RefreshTokenDao
 import com.appmaster.data.dao.ThemeDao
 import com.appmaster.data.dao.UserDao
+import com.appmaster.data.entity.BestItemsTable
+import com.appmaster.data.entity.BestsTable
+import com.appmaster.data.entity.CollectionCardsTable
+import com.appmaster.data.entity.CollectionsTable
+import com.appmaster.data.entity.JwtBlocklistTable
+import com.appmaster.data.entity.RefreshTokensTable
+import com.appmaster.data.entity.ThemesTable
+import com.appmaster.data.entity.UsersTable
 import com.appmaster.data.repository.BestRepositoryImpl
 import com.appmaster.data.repository.CollectionRepositoryImpl
 import com.appmaster.data.repository.DiscoverRepositoryImpl
+import com.appmaster.data.repository.JwtBlocklistRepositoryImpl
+import com.appmaster.data.repository.RefreshTokenRepositoryImpl
 import com.appmaster.data.repository.ThemeRepositoryImpl
 import com.appmaster.data.repository.UserRepositoryImpl
+import com.appmaster.data.service.BcryptPasswordHasher
 import com.appmaster.data.service.JwtTokenProvider
 import com.appmaster.domain.repository.BestRepository
 import com.appmaster.domain.repository.CollectionRepository
 import com.appmaster.domain.repository.DiscoverRepository
+import com.appmaster.domain.repository.JwtBlocklistRepository
+import com.appmaster.domain.repository.RefreshTokenRepository
 import com.appmaster.domain.repository.ThemeRepository
 import com.appmaster.domain.repository.UserRepository
+import com.appmaster.domain.service.JwtConfig
+import com.appmaster.domain.service.PasswordHasher
 import com.appmaster.domain.service.TokenProvider
 import com.appmaster.domain.usecase.auth.DeviceAuthUseCase
+import com.appmaster.domain.usecase.auth.LogoutUseCase
+import com.appmaster.domain.usecase.auth.RefreshTokenUseCase
 import com.appmaster.domain.usecase.best.GetBestsByThemeUseCase
 import com.appmaster.domain.usecase.best.GetMyBestsUseCase
 import com.appmaster.domain.usecase.best.PostBestUseCase
@@ -50,21 +69,70 @@ import io.ktor.server.testing.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.SchemaUtils
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 
-fun fullTestModule() = module {
+// ---------------------------------------------------------------------------
+// Database lifecycle
+// ---------------------------------------------------------------------------
+
+internal val ALL_TABLES = arrayOf(
+    UsersTable,
+    ThemesTable,
+    BestsTable,
+    BestItemsTable,
+    CollectionsTable,
+    CollectionCardsTable,
+    RefreshTokensTable,
+    JwtBlocklistTable
+)
+
+internal fun setupTestDatabase() {
+    Database.connect("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
+    transaction { SchemaUtils.create(*ALL_TABLES) }
+}
+
+internal fun tearDownTestDatabase() {
+    transaction { SchemaUtils.drop(*ALL_TABLES.reversedArray()) }
+}
+
+// ---------------------------------------------------------------------------
+// Auth wiring (used by every test that needs JWT)
+// ---------------------------------------------------------------------------
+
+internal val testJwtConfig = JwtConfig(
+    secret = "test-secret-12345678901234567890",
+    issuer = "appmaster",
+    audience = "appmaster-app",
+    realm = "AppMaster",
+    accessTokenTtl = 15.minutes,
+    refreshTokenTtl = 7.days
+)
+
+internal fun authTestModule(): Module = module {
+    single<JwtConfig> { testJwtConfig }
+    // BCrypt cost 4 in tests — fast, still real bcrypt format
+    single<PasswordHasher> { BcryptPasswordHasher(cost = 4) }
+    single<TokenProvider> { JwtTokenProvider(get()) }
+    single { RefreshTokenDao() }
+    single<RefreshTokenRepository> { RefreshTokenRepositoryImpl(get()) }
+    single { JwtBlocklistDao() }
+    single<JwtBlocklistRepository> { JwtBlocklistRepositoryImpl(get()) }
     single { UserDao() }
     single<UserRepository> { UserRepositoryImpl(get()) }
-    single<TokenProvider> {
-        JwtTokenProvider(
-            secret = "dev-secret-change-in-production",
-            issuer = "appmaster",
-            audience = "appmaster-app",
-            accessTokenExpirationMs = 2592000000L
-        )
-    }
-    single { DeviceAuthUseCase(get()) }
+    single { DeviceAuthUseCase(get(), get(), get(), get()) }
+    single { RefreshTokenUseCase(get(), get(), get()) }
+    single { LogoutUseCase(get(), get()) }
+}
+
+fun fullTestModule() = module {
+    includes(authTestModule())
     single { GetMyProfileUseCase(get(), get(), get()) }
     single { ThemeDao() }
     single<ThemeRepository> { ThemeRepositoryImpl(get()) }
@@ -91,13 +159,13 @@ fun fullTestModule() = module {
 
 fun ApplicationTestBuilder.configureFullTestApp() {
     application {
+        // DI must be installed before Authentication: validate{} pulls
+        // JwtBlocklistRepository from Koin.
+        this@application.install(Koin) { modules(fullTestModule()) }
         configureSerialization()
         configureAuthentication()
         configureRateLimit()
         configureStatusPages()
-        this@application.install(Koin) {
-            modules(fullTestModule())
-        }
         routing {
             authRoutes()
             userRoutes()
@@ -116,6 +184,14 @@ fun ApplicationTestBuilder.jsonClient() = createClient {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Auth helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Bootstrap a brand-new device, returning the issued access token. Used by
+ * the legacy per-route tests that just need *some* valid JWT.
+ */
 suspend fun HttpClient.getToken(deviceId: String): String {
     val response = post("/api/v1/auth/device") {
         contentType(ContentType.Application.Json)
@@ -123,4 +199,28 @@ suspend fun HttpClient.getToken(deviceId: String): String {
     }
     return Json.parseToJsonElement(response.bodyAsText())
         .jsonObject["data"]!!.jsonObject["accessToken"]!!.jsonPrimitive.content
+}
+
+/**
+ * Bootstrap a device and return the full auth payload (access + refresh + secret).
+ */
+data class BootstrapResult(
+    val accessToken: String,
+    val refreshToken: String,
+    val deviceSecret: String,
+    val userId: String
+)
+
+suspend fun HttpClient.bootstrap(deviceId: String): BootstrapResult {
+    val response = post("/api/v1/auth/device") {
+        contentType(ContentType.Application.Json)
+        setBody("""{"deviceId":"$deviceId"}""")
+    }
+    val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonObject
+    return BootstrapResult(
+        accessToken = data["accessToken"]!!.jsonPrimitive.content,
+        refreshToken = data["refreshToken"]!!.jsonPrimitive.content,
+        deviceSecret = data["deviceSecret"]!!.jsonPrimitive.content,
+        userId = data["user"]!!.jsonObject["id"]!!.jsonPrimitive.content
+    )
 }

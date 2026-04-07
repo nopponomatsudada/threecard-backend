@@ -2,11 +2,6 @@
 
 package com.appmaster.routes
 
-import com.appmaster.data.entity.BestItemsTable
-import com.appmaster.data.entity.BestsTable
-import com.appmaster.data.entity.CollectionsTable
-import com.appmaster.data.entity.ThemesTable
-import com.appmaster.data.entity.UsersTable
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -16,9 +11,6 @@ import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -26,20 +18,8 @@ import kotlin.test.assertEquals
 
 class UserRoutesTest {
 
-    @BeforeTest
-    fun setup() {
-        Database.connect("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
-        transaction {
-            SchemaUtils.create(UsersTable, ThemesTable, BestsTable, BestItemsTable, CollectionsTable)
-        }
-    }
-
-    @AfterTest
-    fun teardown() {
-        transaction {
-            SchemaUtils.drop(CollectionsTable, BestItemsTable, BestsTable, ThemesTable, UsersTable)
-        }
-    }
+    @BeforeTest fun setup() = setupTestDatabase()
+    @AfterTest fun teardown() = tearDownTestDatabase()
 
     @Test
     fun `GET users me returns bestCount 0 and collectionCount 0 for new user`() = testApplication {

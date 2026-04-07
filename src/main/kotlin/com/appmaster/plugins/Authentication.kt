@@ -1,6 +1,9 @@
 package com.appmaster.plugins
 
 import com.appmaster.domain.error.DomainError
+import com.appmaster.domain.repository.JwtBlocklistRepository
+import com.appmaster.domain.service.JwtConfig
+import com.appmaster.domain.service.TokenProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.http.*
@@ -8,35 +11,34 @@ import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
-
-private const val JWT_DEV_SECRET = "dev-secret-change-in-production"
+import org.koin.ktor.ext.get
 
 fun Application.configureAuthentication() {
-    val secret = configValue("jwt.secret", "JWT_SECRET", JWT_DEV_SECRET)
-    if (!developmentMode && secret == JWT_DEV_SECRET) {
-        throw IllegalStateException("JWT_SECRET must be set in production")
-    }
-    val issuer = configValue("jwt.issuer", "JWT_ISSUER", "appmaster")
-    val audience = configValue("jwt.audience", "JWT_AUDIENCE", "appmaster-app")
-    val realm = configValue("jwt.realm", "JWT_REALM", "AppMaster")
+    // JwtConfig is loaded once in AppModule (single source of truth, includes
+    // the dev-secret guard). Pull it from Koin.
+    val config: JwtConfig = get()
+    val blocklist: JwtBlocklistRepository = get()
 
     install(Authentication) {
         jwt("jwt") {
-            this.realm = realm
+            this.realm = config.realm
 
             verifier(
-                JWT.require(Algorithm.HMAC256(secret))
-                    .withIssuer(issuer)
-                    .withAudience(audience)
+                JWT.require(Algorithm.HMAC256(config.secret))
+                    .withIssuer(config.issuer)
+                    .withAudience(config.audience)
                     .build()
             )
 
             validate { credential ->
-                if (credential.payload.audience.contains(audience)) {
-                    JWTPrincipal(credential.payload)
-                } else {
-                    null
+                if (!credential.payload.audience.contains(config.audience)) {
+                    return@validate null
                 }
+                val jti = credential.payload.id
+                if (jti != null && blocklist.isBlocked(jti)) {
+                    return@validate null
+                }
+                JWTPrincipal(credential.payload)
             }
 
             challenge { _, _ ->

@@ -20,7 +20,7 @@ class AddCardToCollectionUseCase(
     )
 
     suspend operator fun invoke(params: Params): CollectionCard {
-        collectionRepository.findOwnedCollection(params.collectionId, params.userId)
+        collectionRepository.assertOwnership(params.collectionId, params.userId)
 
         bestRepository.findById(params.bestId)
             ?: throw DomainException(DomainError.NotFound("カード"))

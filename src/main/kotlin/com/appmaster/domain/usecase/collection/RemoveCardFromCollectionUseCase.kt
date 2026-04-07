@@ -17,7 +17,7 @@ class RemoveCardFromCollectionUseCase(
     )
 
     suspend operator fun invoke(params: Params) {
-        collectionRepository.findOwnedCollection(params.collectionId, params.userId)
+        collectionRepository.assertOwnership(params.collectionId, params.userId)
 
         collectionRepository.findCard(params.collectionId, params.bestId)
             ?: throw DomainException(DomainError.NotFound("カード"))

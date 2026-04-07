@@ -2,12 +2,6 @@
 
 package com.appmaster.routes
 
-import com.appmaster.data.entity.BestItemsTable
-import com.appmaster.data.entity.BestsTable
-import com.appmaster.data.entity.CollectionCardsTable
-import com.appmaster.data.entity.CollectionsTable
-import com.appmaster.data.entity.ThemesTable
-import com.appmaster.data.entity.UsersTable
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
@@ -17,9 +11,6 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -28,20 +19,8 @@ import kotlin.test.assertTrue
 
 class DiscoverRoutesTest {
 
-    @BeforeTest
-    fun setup() {
-        Database.connect("jdbc:h2:mem:test;DB_CLOSE_DELAY=-1", driver = "org.h2.Driver")
-        transaction {
-            SchemaUtils.create(UsersTable, ThemesTable, BestsTable, BestItemsTable, CollectionsTable, CollectionCardsTable)
-        }
-    }
-
-    @AfterTest
-    fun teardown() {
-        transaction {
-            SchemaUtils.drop(CollectionCardsTable, CollectionsTable, BestItemsTable, BestsTable, ThemesTable, UsersTable)
-        }
-    }
+    @BeforeTest fun setup() = setupTestDatabase()
+    @AfterTest fun teardown() = tearDownTestDatabase()
 
     private suspend fun HttpClient.createThemeAndBest(token: String, tagId: String = "music"): String {
         val themeResponse = post("/api/v1/themes") {

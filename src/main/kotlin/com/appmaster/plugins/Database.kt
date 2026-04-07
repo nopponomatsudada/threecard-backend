@@ -1,27 +1,22 @@
 package com.appmaster.plugins
 
-import com.appmaster.data.entity.BestItemsTable
-import com.appmaster.data.entity.BestsTable
-import com.appmaster.data.entity.CollectionCardsTable
-import com.appmaster.data.entity.CollectionsTable
-import com.appmaster.data.entity.ThemesTable
-import com.appmaster.data.entity.UsersTable
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.*
+import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import javax.sql.DataSource
 
 @OptIn(kotlin.time.ExperimentalTime::class)
 fun Application.configureDatabase() {
     val dbUrl = configValue("database.url", "DATABASE_URL", "jdbc:postgresql://localhost:5432/appmaster")
     val dbUser = configValue("database.user", "DATABASE_USER", "appmaster")
     val dbPassword = configValue("database.password", "DATABASE_PASSWORD", "appmaster_dev_password")
+    val driver = configValue("database.driver", "DATABASE_DRIVER", "org.postgresql.Driver")
 
     val config = HikariConfig().apply {
         jdbcUrl = dbUrl
-        driverClassName = "org.postgresql.Driver"
+        driverClassName = driver
         username = dbUser
         password = dbPassword
         maximumPoolSize = 10
@@ -30,19 +25,43 @@ fun Application.configureDatabase() {
         connectionTimeout = 30000
         maxLifetime = 600000
         isAutoCommit = false
-        transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+        // H2 (used by tests) does not support REPEATABLE_READ; only set explicit
+        // isolation for real DB drivers.
+        if (!driver.contains("h2", ignoreCase = true)) {
+            transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+        }
         validate()
     }
 
     try {
-        Database.connect(HikariDataSource(config))
-        log.info("Database connection established successfully")
+        val dataSource: DataSource = HikariDataSource(config)
+        Database.connect(dataSource)
+        log.info("Database connection established")
 
-        transaction {
-            SchemaUtils.createMissingTablesAndColumns(UsersTable, ThemesTable, BestsTable, BestItemsTable, CollectionsTable, CollectionCardsTable)
-        }
-        log.info("Database tables created/verified successfully")
+        runMigrations(dataSource, isH2 = driver.contains("h2", ignoreCase = true))
+        log.info("Database migrations applied")
     } catch (e: Exception) {
-        log.warn("Database connection failed: ${e.message}. App will continue without database.")
+        // Hard-fail: a half-broken process is worse than a crash. The orchestrator
+        // (ECS / docker-compose / Kubernetes) will restart the container.
+        log.error("Database initialization failed", e)
+        throw IllegalStateException("Database initialization failed: ${e.message}", e)
     }
+}
+
+private fun Application.runMigrations(dataSource: DataSource, isH2: Boolean) {
+    // baselineOnMigrate: existing prod databases that already have the BE-1..BE-7
+    // schema (created by `createMissingTablesAndColumns`) will be tagged at
+    // baselineVersion=1 on first migrate; the V2 migration then runs to add
+    // device_secret_hash + refresh_tokens + jwt_blocklist.
+    //
+    // Tests use H2 with the production V1+V2 SQL — keep V1 SQL ANSI-compatible.
+    val flyway = Flyway.configure()
+        .dataSource(dataSource)
+        .locations("classpath:db/migration")
+        .baselineOnMigrate(true)
+        .baselineVersion("1")
+        .baselineDescription("Pre-flyway baseline (BE-1..BE-7)")
+        // H2 needs explicit dialect detection skip (Flyway auto-detects via JDBC).
+        .load()
+    flyway.migrate()
 }

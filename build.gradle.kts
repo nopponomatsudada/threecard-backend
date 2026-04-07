@@ -28,6 +28,8 @@ dependencies {
     implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.server.rate.limit)
     implementation(libs.ktor.server.default.headers)
+    implementation(libs.ktor.server.call.id)
+    implementation(libs.ktor.server.forwarded.header)
     implementation(libs.ktor.server.config.yaml)
 
     // Ktor Client
@@ -49,6 +51,10 @@ dependencies {
     implementation(libs.exposed.kotlin.datetime)
     implementation(libs.postgresql)
     implementation(libs.hikari)
+
+    // Schema migrations
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.postgresql)
 
     // DI
     implementation(libs.koin.ktor)

@@ -4,9 +4,11 @@ import com.appmaster.domain.error.DomainError
 import com.appmaster.domain.error.DomainException
 import io.ktor.http.*
 import io.ktor.server.application.*
+import io.ktor.server.plugins.callid.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.response.*
 import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory
 
 @Serializable
 data class ErrorResponse(
@@ -20,6 +22,8 @@ data class ErrorDetail(
     val details: Map<String, String>? = null
 )
 
+private val errorLog = LoggerFactory.getLogger("com.appmaster.errors")
+
 fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<DomainException> { call, cause ->
@@ -28,7 +32,15 @@ fun Application.configureStatusPages() {
         }
 
         exception<Throwable> { call, cause ->
-            call.application.environment.log.error("Unhandled exception", cause)
+            // Log a single concise line at ERROR; full stack only at DEBUG so we
+            // don't leak request payloads to production log sinks.
+            errorLog.error(
+                "Unhandled exception class={} msg={} requestId={}",
+                cause::class.simpleName,
+                cause.message,
+                call.callId
+            )
+            errorLog.debug("Unhandled exception stack", cause)
             call.respond(
                 HttpStatusCode.InternalServerError,
                 ErrorResponse(
@@ -70,7 +82,9 @@ private fun mapDomainError(error: DomainError): Pair<HttpStatusCode, ErrorRespon
     val statusCode = when (error) {
         is DomainError.NotFound -> HttpStatusCode.NotFound
         DomainError.Unauthorized,
-        DomainError.InvalidCredentials -> HttpStatusCode.Unauthorized
+        DomainError.InvalidCredentials,
+        DomainError.InvalidDeviceCredentials,
+        DomainError.InvalidRefreshToken -> HttpStatusCode.Unauthorized
         DomainError.EmailAlreadyExists,
         DomainError.AlreadyPosted,
         DomainError.DuplicateBookmark -> HttpStatusCode.Conflict
