@@ -2,6 +2,7 @@ package com.appmaster.data.repository
 
 import com.appmaster.data.dao.BestDao
 import com.appmaster.domain.model.entity.Best
+import com.appmaster.domain.model.entity.BestWithTheme
 import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.ThemeId
 import com.appmaster.domain.model.valueobject.UserId
@@ -18,6 +19,9 @@ class BestRepositoryImpl(
 
     override suspend fun findByAuthorId(authorId: UserId, limit: Int, offset: Int): List<Best> =
         dao.findByAuthorId(authorId, limit, offset)
+
+    override suspend fun findByAuthorIdWithTheme(authorId: UserId, limit: Int, offset: Int): List<BestWithTheme> =
+        dao.findByAuthorIdWithTheme(authorId, limit, offset)
 
     override suspend fun findByAuthorAndTheme(authorId: UserId, themeId: ThemeId): Best? =
         dao.findByAuthorAndTheme(authorId, themeId)

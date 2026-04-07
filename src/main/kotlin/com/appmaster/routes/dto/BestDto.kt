@@ -3,6 +3,7 @@
 package com.appmaster.routes.dto
 
 import com.appmaster.domain.model.entity.Best
+import com.appmaster.domain.model.entity.BestWithTheme
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -45,4 +46,31 @@ fun Best.toDto() = BestResponse(
         )
     },
     createdAt = createdAt.toString()
+)
+
+@Serializable
+data class BestWithThemeResponse(
+    val id: String,
+    val themeId: String,
+    val themeTitle: String,
+    val tagId: String,
+    val authorId: String,
+    val items: List<BestItemResponse>,
+    val createdAt: String
+)
+
+fun BestWithTheme.toDto() = BestWithThemeResponse(
+    id = best.id.value,
+    themeId = best.themeId.value,
+    themeTitle = themeTitle,
+    tagId = tagId,
+    authorId = best.authorId.value,
+    items = best.items.map { item ->
+        BestItemResponse(
+            rank = item.rank.value,
+            name = item.name,
+            description = item.description
+        )
+    },
+    createdAt = best.createdAt.toString()
 )

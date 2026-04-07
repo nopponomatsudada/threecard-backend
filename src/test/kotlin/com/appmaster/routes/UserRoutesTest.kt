@@ -119,7 +119,7 @@ class UserRoutesTest {
     }
 
     @Test
-    fun `GET users me bests returns user bests`() = testApplication {
+    fun `GET users me bests returns user bests with theme metadata`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()
         val token = client.getToken("device-user-004")
@@ -147,5 +147,11 @@ class UserRoutesTest {
         assertEquals(HttpStatusCode.OK, response.status)
         val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonArray
         assertEquals(1, data.size)
+
+        // Verify enriched fields: themeTitle and tagId
+        val first = data[0].jsonObject
+        assertEquals("Best Movies", first["themeTitle"]!!.jsonPrimitive.content)
+        assertEquals("movies", first["tagId"]!!.jsonPrimitive.content)
+        assertEquals(themeId, first["themeId"]!!.jsonPrimitive.content)
     }
 }

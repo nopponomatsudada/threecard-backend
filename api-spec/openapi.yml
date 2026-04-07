@@ -310,7 +310,7 @@ paths:
     get:
       tags: [bests]
       operationId: getMyBests
-      summary: 自分の投稿一覧
+      summary: 自分の投稿一覧（テーマメタ付き）
       security:
         - bearerAuth: []
       parameters:
@@ -322,7 +322,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ApiResponseBestList'
+                $ref: '#/components/schemas/ApiResponseBestWithThemeList'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -807,6 +807,30 @@ components:
           type: string
           format: date-time
 
+    BestWithThemeDto:
+      type: object
+      required: [id, themeId, themeTitle, tagId, authorId, items, createdAt]
+      properties:
+        id:
+          type: string
+        themeId:
+          type: string
+        themeTitle:
+          type: string
+        tagId:
+          type: string
+        authorId:
+          type: string
+        items:
+          type: array
+          minItems: 1
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/BestItemDto'
+        createdAt:
+          type: string
+          format: date-time
+
     BestItemDto:
       type: object
       required: [rank, name]
@@ -1016,6 +1040,17 @@ components:
       properties:
         data:
           $ref: '#/components/schemas/BestDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseBestWithThemeList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BestWithThemeDto'
         meta:
           $ref: '#/components/schemas/Meta'
 

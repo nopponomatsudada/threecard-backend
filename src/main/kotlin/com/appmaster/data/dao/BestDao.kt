@@ -5,7 +5,9 @@ package com.appmaster.data.dao
 import com.appmaster.data.dbQuery
 import com.appmaster.data.entity.BestItemsTable
 import com.appmaster.data.entity.BestsTable
+import com.appmaster.data.entity.ThemesTable
 import com.appmaster.domain.model.entity.Best
+import com.appmaster.domain.model.entity.BestWithTheme
 import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.ThemeId
 import com.appmaster.domain.model.valueobject.UserId
@@ -43,6 +45,27 @@ class BestDao {
             .map { it.toBestWithoutItems() }
 
         attachItemsToBests(bests)
+    }
+
+    suspend fun findByAuthorIdWithTheme(authorId: UserId, limit: Int, offset: Int): List<BestWithTheme> = dbQuery {
+        val rows = (BestsTable innerJoin ThemesTable)
+            .selectAll()
+            .where { BestsTable.authorId eq authorId.value }
+            .orderBy(BestsTable.createdAt to SortOrder.DESC)
+            .limit(limit).offset(offset.toLong())
+            .toList()
+
+        val bests = rows.map { it.toBestWithoutItems() }
+        val withItems = attachItemsToBests(bests).associateBy { it.id.value }
+
+        rows.mapNotNull { row ->
+            val best = withItems[row[BestsTable.id]] ?: return@mapNotNull null
+            BestWithTheme(
+                best = best,
+                themeTitle = row[ThemesTable.title],
+                tagId = row[ThemesTable.tagId],
+            )
+        }
     }
 
     suspend fun findByAuthorAndTheme(authorId: UserId, themeId: ThemeId): Best? = dbQuery {
