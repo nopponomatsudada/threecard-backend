@@ -26,11 +26,9 @@ class PostBestUseCase(
     )
 
     suspend operator fun invoke(params: Params): Best {
-        // テーマ存在チェック
         themeRepository.findById(params.themeId)
             ?: throw DomainException(DomainError.NotFound("テーマ"))
 
-        // items バリデーション
         if (params.items.isEmpty() || params.items.size > 3) {
             throw DomainException(DomainError.ValidationError("アイテムは1〜3件で入力してください"))
         }
@@ -55,7 +53,6 @@ class PostBestUseCase(
             Best.ItemInput(rank = rank, name = item.name, description = item.description)
         }
 
-        // 重複投稿チェック
         val existing = bestRepository.findByAuthorAndTheme(params.authorId, params.themeId)
         if (existing != null) {
             throw DomainException(DomainError.AlreadyPosted)

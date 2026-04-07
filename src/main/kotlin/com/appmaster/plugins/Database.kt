@@ -2,6 +2,8 @@ package com.appmaster.plugins
 
 import com.appmaster.data.entity.BestItemsTable
 import com.appmaster.data.entity.BestsTable
+import com.appmaster.data.entity.CollectionCardsTable
+import com.appmaster.data.entity.CollectionsTable
 import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
 import com.zaxxer.hikari.HikariConfig
@@ -37,7 +39,7 @@ fun Application.configureDatabase() {
         log.info("Database connection established successfully")
 
         transaction {
-            SchemaUtils.createMissingTablesAndColumns(UsersTable, ThemesTable, BestsTable, BestItemsTable)
+            SchemaUtils.createMissingTablesAndColumns(UsersTable, ThemesTable, BestsTable, BestItemsTable, CollectionsTable, CollectionCardsTable)
         }
         log.info("Database tables created/verified successfully")
     } catch (e: Exception) {

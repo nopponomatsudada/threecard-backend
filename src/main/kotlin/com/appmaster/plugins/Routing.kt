@@ -12,5 +12,7 @@ fun Application.configureRouting() {
         tagRoutes()
         themeRoutes()
         bestRoutes()
+        discoverRoutes()
+        collectionRoutes()
     }
 }
