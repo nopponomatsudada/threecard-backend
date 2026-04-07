@@ -14,6 +14,7 @@ import com.appmaster.routes.dto.CreateCollectionRequest
 import com.appmaster.routes.dto.toDto
 import io.ktor.http.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -28,6 +29,7 @@ fun Route.collectionRoutes() {
     val removeCardFromCollectionUseCase by inject<RemoveCardFromCollectionUseCase>()
 
     authenticate("jwt") {
+        rateLimit(RateLimitName("api")) {
         route("/api/v1/collections") {
 
             get {
@@ -108,6 +110,7 @@ fun Route.collectionRoutes() {
                     }
                 }
             }
+        }
         }
     }
 }

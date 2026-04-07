@@ -1,6 +1,8 @@
 package com.appmaster.plugins
 
 import io.ktor.server.application.*
+import io.ktor.server.auth.*
+import io.ktor.server.auth.jwt.*
 import io.ktor.server.plugins.ratelimit.*
 import kotlin.time.Duration.Companion.minutes
 
@@ -33,11 +35,12 @@ fun Application.configureRateLimit() {
         }
 
         // General API rate limit
-        // 100 requests per minute per IP
+        // 100 requests per minute per authenticated user (fallback to IP)
         register(RateLimitName("api")) {
             rateLimiter(limit = 100, refillPeriod = 1.minutes)
             requestKey { call ->
-                call.request.local.remoteAddress
+                call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+                    ?: call.request.local.remoteAddress
             }
         }
 

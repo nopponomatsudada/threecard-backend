@@ -9,6 +9,7 @@ import com.appmaster.routes.dto.CreateThemeRequest
 import com.appmaster.routes.dto.toDto
 import io.ktor.http.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -20,6 +21,7 @@ fun Route.themeRoutes() {
     val getThemeDetailUseCase by inject<GetThemeDetailUseCase>()
 
     authenticate("jwt") {
+        rateLimit(RateLimitName("api")) {
         route("/api/v1/themes") {
 
             get {
@@ -53,6 +55,7 @@ fun Route.themeRoutes() {
                 val theme = getThemeDetailUseCase(ThemeId(themeIdStr))
                 call.respond(ApiResponse(data = theme.toDto()))
             }
+        }
         }
     }
 }

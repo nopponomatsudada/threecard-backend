@@ -9,8 +9,13 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 
+private const val JWT_DEV_SECRET = "dev-secret-change-in-production"
+
 fun Application.configureAuthentication() {
-    val secret = configValue("jwt.secret", "JWT_SECRET", "dev-secret-change-in-production")
+    val secret = configValue("jwt.secret", "JWT_SECRET", JWT_DEV_SECRET)
+    if (!developmentMode && secret == JWT_DEV_SECRET) {
+        throw IllegalStateException("JWT_SECRET must be set in production")
+    }
     val issuer = configValue("jwt.issuer", "JWT_ISSUER", "appmaster")
     val audience = configValue("jwt.audience", "JWT_AUDIENCE", "appmaster-app")
     val realm = configValue("jwt.realm", "JWT_REALM", "AppMaster")

@@ -8,6 +8,7 @@ import com.appmaster.routes.dto.PostBestRequest
 import com.appmaster.routes.dto.toDto
 import io.ktor.http.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -18,6 +19,7 @@ fun Route.bestRoutes() {
     val getBestsByThemeUseCase by inject<GetBestsByThemeUseCase>()
 
     authenticate("jwt") {
+        rateLimit(RateLimitName("api")) {
         route("/api/v1/themes/{themeId}/bests") {
 
             get {
@@ -51,6 +53,7 @@ fun Route.bestRoutes() {
                 )
                 call.respond(HttpStatusCode.Created, ApiResponse(data = best.toDto()))
             }
+        }
         }
     }
 }
