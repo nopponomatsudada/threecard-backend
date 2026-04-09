@@ -20,8 +20,9 @@ RUN gradle dependencies --no-daemon || true
 # Copy source code
 COPY src ./src
 
-# Build fat JAR
-RUN gradle shadowJar --no-daemon
+# Build fat JAR — uses Ktor's buildFatJar task configured in build.gradle.kts
+# (`ktor { fatJar { archiveFileName = "appmaster-backend.jar" } }`).
+RUN gradle buildFatJar --no-daemon
 
 # -----------------------------------------------------------------------------
 # Stage 2: Runtime
@@ -36,8 +37,8 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 WORKDIR /app
 
-# Copy built artifact
-COPY --from=build /app/build/libs/*-all.jar app.jar
+# Copy built artifact (appmaster-backend.jar from ktor.fatJar archiveFileName)
+COPY --from=build /app/build/libs/appmaster-backend.jar app.jar
 
 # Set ownership
 RUN chown -R appuser:appgroup /app

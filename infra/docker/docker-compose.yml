@@ -37,8 +37,11 @@ services:
       # Server
       SERVER_HOST: 0.0.0.0
       SERVER_PORT: 8080
-      # Environment
+      # Environment — enable Ktor development mode for local dev
       APP_ENV: development
+      KTOR_DEVELOPMENT: "true"
+      # CORS — localhost for web dev + 10.0.2.2 for Android emulator
+      CORS_ALLOWED_HOSTS: "${CORS_ALLOWED_HOSTS:-http://localhost:8080,http://localhost:3000,http://localhost:5173,http://10.0.2.2:8080}"
     depends_on:
       db:
         condition: service_healthy
