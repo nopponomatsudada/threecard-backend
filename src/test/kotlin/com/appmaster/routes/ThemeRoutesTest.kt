@@ -203,4 +203,55 @@ class ThemeRoutesTest {
 
         assertEquals(HttpStatusCode.NotFound, response.status)
     }
+
+    @Test
+    fun `GET themes with limit over 50 returns 400`() = testApplication {
+        configureTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-theme-010")
+
+        val response = client.get("/api/v1/themes?limit=51") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val code = Json.parseToJsonElement(response.bodyAsText())
+            .jsonObject["error"]!!.jsonObject["code"]!!.jsonPrimitive.content
+        assertEquals("VALIDATION_ERROR", code)
+    }
+
+    @Test
+    fun `GET themes with negative offset returns 400`() = testApplication {
+        configureTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-theme-011")
+
+        val response = client.get("/api/v1/themes?offset=-1") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `GET themes with unknown tagId returns empty array`() = testApplication {
+        configureTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-theme-012")
+
+        // Create a theme with a real tag so we know the filter is working
+        client.post("/api/v1/themes") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"title":"Music Theme","tagId":"music"}""")
+        }
+
+        val response = client.get("/api/v1/themes?tagId=not-a-real-tag") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonArray
+        assertEquals(0, data.size)
+    }
 }

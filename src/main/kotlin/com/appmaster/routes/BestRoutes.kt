@@ -24,11 +24,14 @@ fun Route.bestRoutes() {
 
             get {
                 val themeId = ThemeId(call.parameters["themeId"]!!)
-                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
-                val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                val pagination = call.parsePagination()
 
                 val bests = getBestsByThemeUseCase(
-                    GetBestsByThemeUseCase.Params(themeId = themeId, limit = limit, offset = offset)
+                    GetBestsByThemeUseCase.Params(
+                        themeId = themeId,
+                        limit = pagination.limit,
+                        offset = pagination.offset,
+                    )
                 )
                 call.respond(ApiResponse(data = bests.map { it.toDto() }))
             }

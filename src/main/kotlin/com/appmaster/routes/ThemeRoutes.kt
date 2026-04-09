@@ -26,11 +26,14 @@ fun Route.themeRoutes() {
 
             get {
                 val tagId = call.request.queryParameters["tagId"]
-                val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
-                val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                val pagination = call.parsePagination()
 
                 val themes = getThemesUseCase(
-                    GetThemesUseCase.Params(tagId = tagId, limit = limit, offset = offset)
+                    GetThemesUseCase.Params(
+                        tagId = tagId,
+                        limit = pagination.limit,
+                        offset = pagination.offset,
+                    )
                 )
                 call.respond(ApiResponse(data = themes.map { it.toDto() }))
             }

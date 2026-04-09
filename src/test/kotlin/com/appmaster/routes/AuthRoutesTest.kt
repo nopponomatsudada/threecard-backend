@@ -259,4 +259,24 @@ class AuthRoutesTest {
         val response = client.get("/api/v1/users/me")
         assertEquals(HttpStatusCode.Unauthorized, response.status)
     }
+
+    @Test
+    fun `refresh with bogus token returns 401 INVALID_REFRESH_TOKEN`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val response = client.post("/api/v1/auth/refresh") {
+            contentType(ContentType.Application.Json)
+            setBody("""{"refreshToken":"not-a-real-token"}""")
+        }
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+        val code = parse(response.bodyAsText())["error"]!!.jsonObject["code"]!!.jsonPrimitive.content
+        assertEquals("INVALID_REFRESH_TOKEN", code)
+    }
+
+    @Test
+    fun `logout without Authorization header returns 401`() = testApplication {
+        configureFullTestApp()
+        val response = client.post("/api/v1/auth/logout")
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
 }

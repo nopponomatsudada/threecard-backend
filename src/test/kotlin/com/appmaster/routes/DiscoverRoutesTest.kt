@@ -90,6 +90,66 @@ class DiscoverRoutesTest {
     }
 
     @Test
+    fun `GET discover isBookmarked is false when current user has not bookmarked`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val authorToken = client.getToken("device-discover-bm-a")
+        client.createThemeAndBest(authorToken, "music")
+
+        val viewerToken = client.getToken("device-discover-bm-b")
+        val response = client.get("/api/v1/discover") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonArray
+        assertTrue(data.size >= 1)
+        assertTrue(data.all { !it.jsonObject["isBookmarked"]!!.jsonPrimitive.content.toBoolean() })
+    }
+
+    @Test
+    fun `GET discover isBookmarked is true when current user has bookmarked the best`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val authorToken = client.getToken("device-discover-bm-c")
+        client.createThemeAndBest(authorToken, "music")
+
+        val viewerToken = client.getToken("device-discover-bm-d")
+
+        // Viewer fetches discover once to learn the bestId.
+        val firstLook = client.get("/api/v1/discover") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+        }
+        val firstData = Json.parseToJsonElement(firstLook.bodyAsText()).jsonObject["data"]!!.jsonArray
+        assertTrue(firstData.size >= 1)
+        val bestId = firstData[0].jsonObject["id"]!!.jsonPrimitive.content
+
+        // Viewer creates a collection and bookmarks that best.
+        val collectionResp = client.post("/api/v1/collections") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"title":"Saved"}""")
+        }
+        val collectionId = Json.parseToJsonElement(collectionResp.bodyAsText())
+            .jsonObject["data"]!!.jsonObject["id"]!!.jsonPrimitive.content
+
+        client.post("/api/v1/collections/$collectionId/cards") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"bestId":"$bestId"}""")
+        }
+
+        // Viewer now sees isBookmarked=true on that best.
+        val secondLook = client.get("/api/v1/discover") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+        }
+        val secondData = Json.parseToJsonElement(secondLook.bodyAsText()).jsonObject["data"]!!.jsonArray
+        val matching = secondData.firstOrNull { it.jsonObject["id"]!!.jsonPrimitive.content == bestId }
+        assertTrue(matching != null)
+        assertEquals(true, matching!!.jsonObject["isBookmarked"]!!.jsonPrimitive.content.toBoolean())
+    }
+
+    @Test
     fun `GET discover with no cards returns empty array`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()

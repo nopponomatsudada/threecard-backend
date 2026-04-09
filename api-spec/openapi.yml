@@ -195,21 +195,21 @@ paths:
               example:
                 data:
                   - id: "music"
-                    name: "音楽"
+                    label: "音楽"
                   - id: "lifestyle"
-                    name: "暮らし"
+                    label: "暮らし"
                   - id: "books"
-                    name: "本"
+                    label: "本"
                   - id: "fashion"
-                    name: "ファッション"
+                    label: "ファッション"
                   - id: "food"
-                    name: "食"
+                    label: "食"
                   - id: "movies"
-                    name: "映画"
+                    label: "映画"
                   - id: "travel"
-                    name: "旅"
+                    label: "旅"
                   - id: "gadgets"
-                    name: "ガジェット"
+                    label: "ガジェット"
                 meta:
                   timestamp: "2025-01-01T00:00:00Z"
 
@@ -818,12 +818,12 @@ components:
     # --- Tag ---
     TagDto:
       type: object
-      required: [id, name]
+      required: [id, label]
       properties:
         id:
           type: string
           description: タグID（例: music, books）
-        name:
+        label:
           type: string
           description: 表示名（例: 音楽, 本）
 

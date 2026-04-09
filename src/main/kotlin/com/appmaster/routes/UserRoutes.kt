@@ -27,11 +27,14 @@ fun Route.userRoutes() {
 
                 get("/me/bests") {
                     val userId = call.requireUserId()
-                    val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
-                    val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                    val pagination = call.parsePagination()
 
                     val bests = getMyBestsUseCase(
-                        GetMyBestsUseCase.Params(authorId = userId, limit = limit, offset = offset)
+                        GetMyBestsUseCase.Params(
+                            authorId = userId,
+                            limit = pagination.limit,
+                            offset = pagination.offset,
+                        )
                     )
                     call.respond(ApiResponse(data = bests.map { it.toDto() }))
                 }

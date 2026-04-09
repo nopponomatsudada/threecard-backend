@@ -260,6 +260,61 @@ class CollectionRoutesTest {
     }
 
     @Test
+    fun `POST cards to non-owned collection returns 404`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val token1 = client.getToken("device-col-012a")
+        val token2 = client.getToken("device-col-012b")
+        val collectionId = client.createCollection(token1)
+        val bestId = client.createBest(token2)
+
+        val response = client.post("/api/v1/collections/$collectionId/cards") {
+            header(HttpHeaders.Authorization, "Bearer $token2")
+            contentType(ContentType.Application.Json)
+            setBody("""{"bestId":"$bestId"}""")
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `DELETE cards from non-owned collection returns 404`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val token1 = client.getToken("device-col-013a")
+        val token2 = client.getToken("device-col-013b")
+        val collectionId = client.createCollection(token1)
+        val bestId = client.createBest(token1)
+        client.post("/api/v1/collections/$collectionId/cards") {
+            header(HttpHeaders.Authorization, "Bearer $token1")
+            contentType(ContentType.Application.Json)
+            setBody("""{"bestId":"$bestId"}""")
+        }
+
+        val response = client.delete("/api/v1/collections/$collectionId/cards/$bestId") {
+            header(HttpHeaders.Authorization, "Bearer $token2")
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `POST cards with non-existent bestId returns 404`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-col-014")
+        val collectionId = client.createCollection(token)
+
+        val response = client.post("/api/v1/collections/$collectionId/cards") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"bestId":"non-existent-best-id"}""")
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
     fun `GET users me bests returns own bests`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()

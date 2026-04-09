@@ -134,4 +134,48 @@ class UserRoutesTest {
         assertEquals("movies", first["tagId"]!!.jsonPrimitive.content)
         assertEquals(themeId, first["themeId"]!!.jsonPrimitive.content)
     }
+
+    @Test
+    fun `GET users me bests returns empty array for user with no bests`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-user-005")
+
+        val response = client.get("/api/v1/users/me/bests") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonArray
+        assertEquals(0, data.size)
+    }
+
+    @Test
+    fun `GET users me bests with limit over 50 returns 400`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-user-006")
+
+        val response = client.get("/api/v1/users/me/bests?limit=51") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+        val code = Json.parseToJsonElement(response.bodyAsText())
+            .jsonObject["error"]!!.jsonObject["code"]!!.jsonPrimitive.content
+        assertEquals("VALIDATION_ERROR", code)
+    }
+
+    @Test
+    fun `GET users me bests with negative offset returns 400`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-user-007")
+
+        val response = client.get("/api/v1/users/me/bests?offset=-1") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
 }

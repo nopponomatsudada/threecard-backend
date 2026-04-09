@@ -65,15 +65,14 @@ fun Route.collectionRoutes() {
                     get {
                         val userId = call.requireUserId()
                         val collectionId = CollectionId(call.parameters["collectionId"]!!)
-                        val limit = call.request.queryParameters["limit"]?.toIntOrNull() ?: 20
-                        val offset = call.request.queryParameters["offset"]?.toIntOrNull() ?: 0
+                        val pagination = call.parsePagination()
 
                         val cards = getCollectionCardsUseCase(
                             GetCollectionCardsUseCase.Params(
                                 collectionId = collectionId,
                                 userId = userId,
-                                limit = limit,
-                                offset = offset
+                                limit = pagination.limit,
+                                offset = pagination.offset,
                             )
                         )
                         call.respond(ApiResponse(data = cards.map { it.toDto() }))

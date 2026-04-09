@@ -233,6 +233,22 @@ class BestRoutesTest {
     }
 
     @Test
+    fun `POST bests with empty items returns 400`() = testApplication {
+        configureTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-best-012")
+        val themeId = client.createTheme(token)
+
+        val response = client.post("/api/v1/themes/$themeId/bests") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"items":[]}""")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
     fun `POST bests with invalid rank returns 400`() = testApplication {
         configureTestApp()
         val client = jsonClient()
