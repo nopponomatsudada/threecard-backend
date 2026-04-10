@@ -12,7 +12,17 @@ infra/
 │   ├── docker-compose.prod.yml # 本番参照用
 │   └── .dockerignore           # ビルド除外設定
 │
-├── terraform/                  # AWS IaC
+├── fly/                        # Fly.io デプロイ（現行本番）
+│   └── README.md               # Fly.io セットアップ手順
+│                               # NOTE: fly.toml はプロジェクトルート
+│                               #       (threecard-backend/fly.toml) に配置。
+│                               #       Docker ビルドコンテキストを
+│                               #       プロジェクトルートにするため。
+│
+├── supabase/                   # Supabase マネージド PostgreSQL
+│   └── README.md               # Supabase セットアップ手順
+│
+├── terraform/                  # AWS IaC（レガシー／参考）
 │   ├── modules/                # 再利用可能モジュール
 │   │   ├── networking/         # VPC, Subnets, SG
 │   │   ├── database/           # RDS PostgreSQL
@@ -45,6 +55,27 @@ curl http://localhost:8080/health
 # 停止
 docker-compose down
 ```
+
+### 本番デプロイ (Fly.io + Supabase)
+
+現行本番は **Fly.io (アプリ) + Supabase (PostgreSQL)** の構成。
+
+```bash
+# 1. Supabase でプロジェクト作成して接続文字列を取得
+#    詳細: infra/supabase/README.md
+
+# 2. Fly.io にアプリ作成 + Secrets 設定（threecard-backend/ で実行）
+fly apps create threecard-backend
+fly secrets set DATABASE_URL='jdbc:postgresql://...?sslmode=require' \
+  DATABASE_USER='postgres.<project_ref>' \
+  DATABASE_PASSWORD='<db_password>' \
+  JWT_SECRET="$(openssl rand -base64 48)"
+
+# 3. デプロイ（fly.toml はプロジェクトルートにあるので引数不要）
+fly deploy
+```
+
+詳細手順は [`infra/fly/README.md`](./fly/README.md) と [`infra/supabase/README.md`](./supabase/README.md) を参照。
 
 ### Docker イメージビルド
 

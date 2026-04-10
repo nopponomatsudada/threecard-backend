@@ -76,3 +76,12 @@ ktor {
         archiveFileName.set("appmaster-backend.jar")
     }
 }
+
+// Ktor's buildFatJar uses Shadow JAR internally. Without mergeServiceFiles(),
+// META-INF/services/* files from multiple deps overwrite each other — notably
+// flyway-database-postgresql clobbers flyway-core's
+// org.flywaydb.core.extensibility.Plugin, dropping CoreResourceTypeProvider and
+// breaking V__/R__ migration filename recognition.
+tasks.named<com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar>("shadowJar") {
+    mergeServiceFiles()
+}

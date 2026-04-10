@@ -197,7 +197,7 @@ class ThemeRoutesTest {
         val client = jsonClient()
         val token = client.getToken("device-theme-009")
 
-        val response = client.get("/api/v1/themes/non-existent-id") {
+        val response = client.get("/api/v1/themes/00000000-0000-0000-0000-000000000000") {
             header(HttpHeaders.Authorization, "Bearer $token")
         }
 

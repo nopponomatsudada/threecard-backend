@@ -946,6 +946,8 @@ components:
           maximum: 3
         name:
           type: string
+          minLength: 1
+          maxLength: 50
         description:
           type: string
           nullable: true
@@ -969,6 +971,8 @@ components:
                 maximum: 3
               name:
                 type: string
+                minLength: 1
+                maxLength: 50
               description:
                 type: string
                 maxLength: 140
@@ -1020,6 +1024,7 @@ components:
         title:
           type: string
           minLength: 1
+          maxLength: 50
 
     AddCardRequest:
       type: object

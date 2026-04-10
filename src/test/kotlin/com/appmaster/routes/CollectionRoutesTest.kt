@@ -308,7 +308,7 @@ class CollectionRoutesTest {
         val response = client.post("/api/v1/collections/$collectionId/cards") {
             header(HttpHeaders.Authorization, "Bearer $token")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"non-existent-best-id"}""")
+            setBody("""{"bestId":"00000000-0000-0000-0000-000000000000"}""")
         }
 
         assertEquals(HttpStatusCode.NotFound, response.status)

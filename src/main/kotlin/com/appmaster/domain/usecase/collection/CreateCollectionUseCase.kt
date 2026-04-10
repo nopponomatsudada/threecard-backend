@@ -14,6 +14,7 @@ class CreateCollectionUseCase(
 ) {
     companion object {
         const val FREE_COLLECTION_LIMIT = 3
+        const val MAX_TITLE_LENGTH = 50
     }
 
     data class Params(
@@ -22,8 +23,12 @@ class CreateCollectionUseCase(
     )
 
     suspend operator fun invoke(params: Params): Collection {
-        if (params.title.isBlank()) {
+        val trimmedTitle = params.title.trim()
+        if (trimmedTitle.isEmpty()) {
             throw DomainException(DomainError.CollectionTitleRequired)
+        }
+        if (trimmedTitle.length > MAX_TITLE_LENGTH) {
+            throw DomainException(DomainError.CollectionTitleTooLong)
         }
 
         val user = userRepository.findById(params.userId)
@@ -36,7 +41,7 @@ class CreateCollectionUseCase(
             }
         }
 
-        val collection = Collection.create(userId = params.userId, title = params.title)
+        val collection = Collection.create(userId = params.userId, title = trimmedTitle)
         return collectionRepository.save(collection)
     }
 }

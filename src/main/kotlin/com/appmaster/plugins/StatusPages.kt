@@ -94,9 +94,11 @@ private fun mapDomainError(error: DomainError): Pair<HttpStatusCode, ErrorRespon
         DomainError.ThemeTitleTooLong,
         DomainError.ThemeDescriptionTooLong,
         DomainError.BestItemNameRequired,
+        DomainError.BestItemNameTooLong,
         DomainError.BestItemDescriptionTooLong,
         DomainError.TagNotSelected,
         DomainError.CollectionTitleRequired,
+        DomainError.CollectionTitleTooLong,
         is DomainError.ValidationError -> HttpStatusCode.BadRequest
     }
     return statusCode to ErrorResponse(

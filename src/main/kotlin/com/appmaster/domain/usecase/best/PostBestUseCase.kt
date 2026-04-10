@@ -13,6 +13,10 @@ class PostBestUseCase(
     private val bestRepository: BestRepository,
     private val themeRepository: ThemeRepository
 ) {
+    companion object {
+        const val MAX_ITEM_NAME_LENGTH = 50
+    }
+
     data class Params(
         val themeId: ThemeId,
         val authorId: UserId,
@@ -42,15 +46,20 @@ class PostBestUseCase(
                 throw DomainException(DomainError.ValidationError("順位が重複しています"))
             }
 
-            if (item.name.isBlank()) {
+            val trimmedName = item.name.trim()
+            if (trimmedName.isEmpty()) {
                 throw DomainException(DomainError.BestItemNameRequired)
+            }
+
+            if (trimmedName.length > MAX_ITEM_NAME_LENGTH) {
+                throw DomainException(DomainError.BestItemNameTooLong)
             }
 
             if (item.description != null && item.description.length > 140) {
                 throw DomainException(DomainError.BestItemDescriptionTooLong)
             }
 
-            Best.ItemInput(rank = rank, name = item.name, description = item.description)
+            Best.ItemInput(rank = rank, name = trimmedName, description = item.description)
         }
 
         val existing = bestRepository.findByAuthorAndTheme(params.authorId, params.themeId)

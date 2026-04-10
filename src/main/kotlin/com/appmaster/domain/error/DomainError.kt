@@ -28,11 +28,13 @@ sealed class DomainError(
     data object BestItemDescriptionTooLong : DomainError("BEST_ITEM_DESCRIPTION_TOO_LONG", "140文字以内で入力してください")
     data object AlreadyPosted : DomainError("ALREADY_POSTED", "このテーマには既に投稿しています")
     data object TagNotSelected : DomainError("TAG_NOT_SELECTED", "カテゴリタグを選択してください")
+    data object BestItemNameTooLong : DomainError("BEST_ITEM_NAME_TOO_LONG", "50文字以内で入力してください")
 
     // Collection Errors (3xxx)
     data object CollectionLimitReached : DomainError("COLLECTION_LIMIT_REACHED", "無料プランは3個まで。Plusにアップグレードして無制限に。")
     data object CollectionTitleRequired : DomainError("COLLECTION_TITLE_REQUIRED", "コレクション名を入力してください")
     data object DuplicateBookmark : DomainError("DUPLICATE_BOOKMARK", "既に保存済みです")
+    data object CollectionTitleTooLong : DomainError("COLLECTION_TITLE_TOO_LONG", "50文字以内で入力してください")
 
     // Server Errors (5xxx)
     data object ServerError : DomainError("SERVER_ERROR", "エラーが発生しました。時間をおいて再度お試しください")

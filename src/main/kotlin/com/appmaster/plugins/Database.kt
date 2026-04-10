@@ -7,12 +7,24 @@ import org.flywaydb.core.Flyway
 import org.jetbrains.exposed.v1.jdbc.Database
 import javax.sql.DataSource
 
+private const val DEV_DATABASE_PASSWORD = "appmaster_dev_password"
+
 @OptIn(kotlin.time.ExperimentalTime::class)
 fun Application.configureDatabase() {
     val dbUrl = configValue("database.url", "DATABASE_URL", "jdbc:postgresql://localhost:5432/appmaster")
     val dbUser = configValue("database.user", "DATABASE_USER", "appmaster")
-    val dbPassword = configValue("database.password", "DATABASE_PASSWORD", "appmaster_dev_password")
+    val dbPassword = configValue("database.password", "DATABASE_PASSWORD", DEV_DATABASE_PASSWORD)
     val driver = configValue("database.driver", "DATABASE_DRIVER", "org.postgresql.Driver")
+
+    // Mirror the JWT_SECRET dev-default guard in AppModule: if we're not in
+    // development mode and the operator forgot to set DATABASE_PASSWORD, fail
+    // fast rather than booting with a known-weak credential.
+    val devMode = environment.config.propertyOrNull("ktor.development")?.getString()?.toBoolean() == true
+    if (!devMode && dbPassword == DEV_DATABASE_PASSWORD) {
+        throw IllegalStateException(
+            "DATABASE_PASSWORD must be set to a non-default value in production"
+        )
+    }
 
     val config = HikariConfig().apply {
         jdbcUrl = dbUrl

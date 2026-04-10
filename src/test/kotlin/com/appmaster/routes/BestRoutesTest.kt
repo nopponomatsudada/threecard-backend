@@ -170,7 +170,7 @@ class BestRoutesTest {
         val client = jsonClient()
         val token = client.getToken("device-best-007")
 
-        val response = client.post("/api/v1/themes/non-existent-id/bests") {
+        val response = client.post("/api/v1/themes/00000000-0000-0000-0000-000000000000/bests") {
             header(HttpHeaders.Authorization, "Bearer $token")
             contentType(ContentType.Application.Json)
             setBody("""{"items":[{"rank":1,"name":"Item"}]}""")
@@ -209,7 +209,7 @@ class BestRoutesTest {
         val client = jsonClient()
         val token = client.getToken("device-best-009")
 
-        val response = client.get("/api/v1/themes/non-existent-id/bests") {
+        val response = client.get("/api/v1/themes/00000000-0000-0000-0000-000000000000/bests") {
             header(HttpHeaders.Authorization, "Bearer $token")
         }
 
