@@ -67,14 +67,12 @@ private fun Application.runMigrations(dataSource: DataSource, isH2: Boolean) {
     // device_secret_hash + refresh_tokens + jwt_blocklist.
     //
     // Tests use H2 with the production V1+V2 SQL — keep V1 SQL ANSI-compatible.
-    val locations = if (isH2) {
-        arrayOf("classpath:db/migration")
-    } else {
-        arrayOf("classpath:db/migration", "classpath:db/migration-postgresql")
-    }
+    // PostgreSQL-specific DDL (e.g. RLS) is applied via Supabase SQL Editor,
+    // not Flyway, because the Supabase pooler's statement_timeout and lack of
+    // advisory lock support make DDL migrations unreliable.
     val flyway = Flyway.configure()
         .dataSource(dataSource)
-        .locations(*locations)
+        .locations("classpath:db/migration")
         .baselineOnMigrate(true)
         .baselineVersion("1")
         .baselineDescription("Pre-flyway baseline (BE-1..BE-7)")
