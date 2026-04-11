@@ -78,9 +78,9 @@ private fun Application.runMigrations(dataSource: DataSource, isH2: Boolean) {
         .baselineOnMigrate(true)
         .baselineVersion("1")
         .baselineDescription("Pre-flyway baseline (BE-1..BE-7)")
-        // H2 needs explicit dialect detection skip (Flyway auto-detects via JDBC).
+        // Supabase connection pooler (PgBouncer transaction mode) does not
+        // support pg_advisory_lock.  Retry count -1 = skip advisory locking.
+        .lockRetryCount(-1)
         .load()
-    // repair() removes failed migration entries so they can be retried.
-    flyway.repair()
     flyway.migrate()
 }
