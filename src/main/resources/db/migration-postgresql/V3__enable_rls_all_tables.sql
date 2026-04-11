@@ -5,6 +5,11 @@
 -- flyway_schema_history is owned by the migration role and is not exposed
 -- via PostgREST, but we enable RLS on it too to silence the Supabase linter.
 
+-- Supabase's connection pooler enforces a short statement_timeout.
+-- ALTER TABLE … ENABLE RLS acquires ACCESS EXCLUSIVE and may wait for
+-- concurrent locks, so give it more headroom.
+SET LOCAL statement_timeout = '60s';
+
 -- ── application tables ──────────────────────────────────────────────
 ALTER TABLE users             ENABLE ROW LEVEL SECURITY;
 ALTER TABLE themes            ENABLE ROW LEVEL SECURITY;

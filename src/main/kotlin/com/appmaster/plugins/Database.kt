@@ -80,5 +80,7 @@ private fun Application.runMigrations(dataSource: DataSource, isH2: Boolean) {
         .baselineDescription("Pre-flyway baseline (BE-1..BE-7)")
         // H2 needs explicit dialect detection skip (Flyway auto-detects via JDBC).
         .load()
+    // repair() removes failed migration entries so they can be retried.
+    flyway.repair()
     flyway.migrate()
 }
