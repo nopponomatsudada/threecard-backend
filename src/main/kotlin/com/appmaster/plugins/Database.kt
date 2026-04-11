@@ -67,9 +67,14 @@ private fun Application.runMigrations(dataSource: DataSource, isH2: Boolean) {
     // device_secret_hash + refresh_tokens + jwt_blocklist.
     //
     // Tests use H2 with the production V1+V2 SQL — keep V1 SQL ANSI-compatible.
+    val locations = if (isH2) {
+        arrayOf("classpath:db/migration")
+    } else {
+        arrayOf("classpath:db/migration", "classpath:db/migration-postgresql")
+    }
     val flyway = Flyway.configure()
         .dataSource(dataSource)
-        .locations("classpath:db/migration")
+        .locations(*locations)
         .baselineOnMigrate(true)
         .baselineVersion("1")
         .baselineDescription("Pre-flyway baseline (BE-1..BE-7)")
