@@ -13,6 +13,7 @@ data class Best(
     val id: BestId,
     val themeId: ThemeId,
     val authorId: UserId,
+    val authorDisplayId: String,
     val items: List<BestItem>,
     val createdAt: Instant
 ) {
@@ -20,7 +21,8 @@ data class Best(
         fun create(
             themeId: ThemeId,
             authorId: UserId,
-            items: List<ItemInput>
+            items: List<ItemInput>,
+            authorDisplayId: String = ""
         ): Best {
             val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
             val bestId = BestId.generate()
@@ -28,6 +30,7 @@ data class Best(
                 id = bestId,
                 themeId = themeId,
                 authorId = authorId,
+                authorDisplayId = authorDisplayId,
                 items = items.map { input ->
                     BestItem(
                         id = UUID.randomUUID().toString(),

@@ -892,7 +892,7 @@ components:
     # --- Best ---
     BestDto:
       type: object
-      required: [id, themeId, authorId, items, createdAt]
+      required: [id, themeId, authorId, authorDisplayId, items, createdAt]
       properties:
         id:
           type: string
@@ -914,7 +914,7 @@ components:
 
     BestWithThemeDto:
       type: object
-      required: [id, themeId, themeTitle, tagId, authorId, items, createdAt]
+      required: [id, themeId, themeTitle, tagId, authorId, authorDisplayId, items, createdAt]
       properties:
         id:
           type: string
@@ -925,6 +925,8 @@ components:
         tagId:
           type: string
         authorId:
+          type: string
+        authorDisplayId:
           type: string
         items:
           type: array

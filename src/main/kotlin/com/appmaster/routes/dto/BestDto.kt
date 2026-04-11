@@ -23,6 +23,7 @@ data class BestResponse(
     val id: String,
     val themeId: String,
     val authorId: String,
+    val authorDisplayId: String,
     val items: List<BestItemResponse>,
     val createdAt: String
 )
@@ -38,6 +39,7 @@ fun Best.toDto() = BestResponse(
     id = id.value,
     themeId = themeId.value,
     authorId = authorId.value,
+    authorDisplayId = authorDisplayId,
     items = items.map { item ->
         BestItemResponse(
             rank = item.rank.value,
@@ -55,6 +57,7 @@ data class BestWithThemeResponse(
     val themeTitle: String,
     val tagId: String,
     val authorId: String,
+    val authorDisplayId: String,
     val items: List<BestItemResponse>,
     val createdAt: String
 )
@@ -65,6 +68,7 @@ fun BestWithTheme.toDto() = BestWithThemeResponse(
     themeTitle = themeTitle,
     tagId = tagId,
     authorId = best.authorId.value,
+    authorDisplayId = best.authorDisplayId,
     items = best.items.map { item ->
         BestItemResponse(
             rank = item.rank.value,

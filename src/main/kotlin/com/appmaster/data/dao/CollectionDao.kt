@@ -6,6 +6,7 @@ import com.appmaster.data.dbQuery
 import com.appmaster.data.entity.BestsTable
 import com.appmaster.data.entity.CollectionCardsTable
 import com.appmaster.data.entity.CollectionsTable
+import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.Best
 import com.appmaster.domain.model.entity.Collection
 import com.appmaster.domain.model.entity.CollectionCard
@@ -84,6 +85,7 @@ class CollectionDao {
     suspend fun getCards(collectionId: CollectionId, limit: Int, offset: Int): List<Best> = dbQuery {
         val bests = BestsTable
             .join(CollectionCardsTable, JoinType.INNER, BestsTable.id, CollectionCardsTable.bestId)
+            .join(UsersTable, JoinType.INNER, BestsTable.authorId, UsersTable.id)
             .selectAll()
             .where { CollectionCardsTable.collectionId eq collectionId.value }
             .orderBy(BestsTable.createdAt to SortOrder.DESC)

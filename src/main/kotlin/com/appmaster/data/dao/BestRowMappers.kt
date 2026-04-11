@@ -4,6 +4,7 @@ package com.appmaster.data.dao
 
 import com.appmaster.data.entity.BestItemsTable
 import com.appmaster.data.entity.BestsTable
+import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.Best
 import com.appmaster.domain.model.entity.BestItem
 import com.appmaster.domain.model.`enum`.Rank
@@ -18,6 +19,7 @@ internal fun ResultRow.toBestWithoutItems(): Best = Best(
     id = BestId(this[BestsTable.id]),
     themeId = ThemeId(this[BestsTable.themeId]),
     authorId = UserId(this[BestsTable.authorId]),
+    authorDisplayId = this[UsersTable.displayId],
     items = emptyList(),
     createdAt = this[BestsTable.createdAt]
 )
