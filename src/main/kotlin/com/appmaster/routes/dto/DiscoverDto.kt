@@ -3,6 +3,7 @@
 package com.appmaster.routes.dto
 
 import com.appmaster.domain.model.entity.DiscoverCard
+import com.appmaster.domain.model.`enum`.Tag
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -11,6 +12,7 @@ data class DiscoverCardResponse(
     val themeId: String,
     val themeTitle: String,
     val tagName: String,
+    val tagColor: String,
     val authorDisplayId: String,
     val items: List<BestItemResponse>,
     val isBookmarked: Boolean,
@@ -22,6 +24,7 @@ fun DiscoverCard.toDto() = DiscoverCardResponse(
     themeId = themeId.value,
     themeTitle = themeTitle,
     tagName = tagName,
+    tagColor = Tag.fromId(tagId)?.color ?: "#9E9E9E",
     authorDisplayId = authorDisplayId,
     items = items.map { item ->
         BestItemResponse(

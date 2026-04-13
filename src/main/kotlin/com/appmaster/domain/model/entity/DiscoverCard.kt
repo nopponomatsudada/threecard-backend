@@ -10,6 +10,7 @@ data class DiscoverCard(
     val id: BestId,
     val themeId: ThemeId,
     val themeTitle: String,
+    val tagId: String,
     val tagName: String,
     val authorDisplayId: String,
     val items: List<BestItem>,

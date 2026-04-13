@@ -4,6 +4,7 @@ package com.appmaster.routes.dto
 
 import com.appmaster.domain.model.entity.Best
 import com.appmaster.domain.model.entity.BestWithTheme
+import com.appmaster.domain.model.`enum`.Tag
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -56,6 +57,7 @@ data class BestWithThemeResponse(
     val themeId: String,
     val themeTitle: String,
     val tagId: String,
+    val tagColor: String,
     val authorId: String,
     val authorDisplayId: String,
     val items: List<BestItemResponse>,
@@ -67,6 +69,7 @@ fun BestWithTheme.toDto() = BestWithThemeResponse(
     themeId = best.themeId.value,
     themeTitle = themeTitle,
     tagId = tagId,
+    tagColor = Tag.fromId(tagId)?.color ?: "#9E9E9E",
     authorId = best.authorId.value,
     authorDisplayId = best.authorDisplayId,
     items = best.items.map { item ->

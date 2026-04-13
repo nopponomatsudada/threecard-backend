@@ -63,6 +63,7 @@ class DiscoverDao {
                 id = BestId(bestId),
                 themeId = ThemeId(row[BestsTable.themeId]),
                 themeTitle = row[ThemesTable.title],
+                tagId = tagIdValue,
                 tagName = tag?.label ?: tagIdValue,
                 authorDisplayId = row[UsersTable.displayId],
                 items = itemsByBestId[bestId]?.sortedBy { it.rank.value } ?: emptyList(),

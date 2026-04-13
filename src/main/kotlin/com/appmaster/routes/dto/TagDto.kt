@@ -6,10 +6,11 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class TagResponse(
     val id: String,
-    val label: String
+    val label: String,
+    val color: String
 )
 
-fun Tag.toDto() = TagResponse(id = id, label = label)
+fun Tag.toDto() = TagResponse(id = id, label = label, color = color)
 
 private val cachedTagDtos: List<TagResponse> = Tag.entries.map { it.toDto() }
 fun allTagDtos(): List<TagResponse> = cachedTagDtos
