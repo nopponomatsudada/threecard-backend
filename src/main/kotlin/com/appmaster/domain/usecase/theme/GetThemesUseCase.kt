@@ -8,7 +8,7 @@ class GetThemesUseCase(
 ) {
     data class Params(
         val tagId: String?,
-        val location: String?,
+        val areaCode: String?,
         val limit: Int,
         val offset: Int
     )
@@ -16,6 +16,6 @@ class GetThemesUseCase(
     suspend operator fun invoke(params: Params): List<Theme> {
         val clampedLimit = params.limit.coerceIn(1, 50)
         val safeOffset = maxOf(0, params.offset)
-        return themeRepository.findAll(params.tagId, params.location, clampedLimit, safeOffset)
+        return themeRepository.findAll(params.tagId, params.areaCode, clampedLimit, safeOffset)
     }
 }

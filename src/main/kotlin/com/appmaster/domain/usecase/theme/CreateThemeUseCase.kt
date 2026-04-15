@@ -2,6 +2,7 @@ package com.appmaster.domain.usecase.theme
 
 import com.appmaster.domain.error.DomainError
 import com.appmaster.domain.error.DomainException
+import com.appmaster.domain.model.Area
 import com.appmaster.domain.model.entity.Theme
 import com.appmaster.domain.model.`enum`.Tag
 import com.appmaster.domain.model.valueobject.UserId
@@ -14,7 +15,7 @@ class CreateThemeUseCase(
         val title: String,
         val description: String?,
         val tagId: String,
-        val location: String?,
+        val areaCode: String?,
         val authorId: UserId
     )
 
@@ -31,16 +32,15 @@ class CreateThemeUseCase(
         if (Tag.fromId(params.tagId) == null) {
             throw DomainException(DomainError.TagNotSelected)
         }
-
-        if (params.location != null && params.location.length > 100) {
-            throw DomainException(DomainError.ValidationError("場所は100文字以内で入力してください"))
+        if (params.areaCode != null && Area.findByCode(params.areaCode) == null) {
+            throw DomainException(DomainError.ValidationError("無効なエリアコードです: ${params.areaCode}"))
         }
 
         val theme = Theme.create(
             title = params.title,
             description = params.description,
             tagId = params.tagId,
-            location = params.location?.trim()?.ifEmpty { null },
+            areaCode = params.areaCode,
             authorId = params.authorId
         )
         return themeRepository.save(theme)

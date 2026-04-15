@@ -16,11 +16,11 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class ThemeDao {
 
-    suspend fun findAll(tagId: String?, location: String?, limit: Int, offset: Int): List<Theme> = dbQuery {
+    suspend fun findAll(tagId: String?, areaCode: String?, limit: Int, offset: Int): List<Theme> = dbQuery {
         val query = ThemesTable.selectAll().apply {
             val conditions = buildList {
                 if (tagId != null) add(ThemesTable.tagId eq tagId)
-                if (location != null) add(ThemesTable.location eq location)
+                if (areaCode != null) add(ThemesTable.areaCode eq areaCode)
             }
             if (conditions.isNotEmpty()) {
                 where { conditions.reduce { acc, op -> acc and op } }
@@ -45,7 +45,7 @@ class ThemeDao {
             it[title] = theme.title
             it[description] = theme.description
             it[tagId] = theme.tagId
-            it[location] = theme.location
+            it[areaCode] = theme.areaCode
             it[authorId] = theme.authorId.value
             it[createdAt] = theme.createdAt
         }
@@ -57,7 +57,7 @@ class ThemeDao {
         title = this[ThemesTable.title],
         description = this[ThemesTable.description],
         tagId = this[ThemesTable.tagId],
-        location = this[ThemesTable.location],
+        areaCode = this[ThemesTable.areaCode],
         authorId = UserId(this[ThemesTable.authorId]),
         createdAt = this[ThemesTable.createdAt]
     )

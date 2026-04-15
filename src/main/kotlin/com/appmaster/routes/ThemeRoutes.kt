@@ -26,13 +26,13 @@ fun Route.themeRoutes() {
 
             get {
                 val tagId = call.request.queryParameters["tagId"]
-                val location = call.request.queryParameters["location"]
+                val areaCode = call.request.queryParameters["areaCode"]
                 val pagination = call.parsePagination()
 
                 val themes = getThemesUseCase(
                     GetThemesUseCase.Params(
                         tagId = tagId,
-                        location = location,
+                        areaCode = areaCode,
                         limit = pagination.limit,
                         offset = pagination.offset,
                     )
@@ -49,7 +49,7 @@ fun Route.themeRoutes() {
                         title = request.title,
                         description = request.description,
                         tagId = request.tagId,
-                        location = request.location,
+                        areaCode = request.areaCode,
                         authorId = userId
                     )
                 )
