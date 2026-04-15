@@ -11,6 +11,7 @@ data class Theme(
     val title: String,
     val description: String?,
     val tagId: String,
+    val location: String?,
     val authorId: UserId,
     val createdAt: Instant
 ) {
@@ -19,6 +20,7 @@ data class Theme(
             title: String,
             description: String?,
             tagId: String,
+            location: String?,
             authorId: UserId
         ): Theme {
             val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
@@ -27,6 +29,7 @@ data class Theme(
                 title = title,
                 description = description,
                 tagId = tagId,
+                location = location,
                 authorId = authorId,
                 createdAt = now
             )

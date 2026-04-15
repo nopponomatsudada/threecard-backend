@@ -9,8 +9,8 @@ class ThemeRepositoryImpl(
     private val dao: ThemeDao
 ) : ThemeRepository {
 
-    override suspend fun findAll(tagId: String?, limit: Int, offset: Int): List<Theme> =
-        dao.findAll(tagId, limit, offset)
+    override suspend fun findAll(tagId: String?, location: String?, limit: Int, offset: Int): List<Theme> =
+        dao.findAll(tagId, location, limit, offset)
 
     override suspend fun findById(id: ThemeId): Theme? = dao.findById(id)
 

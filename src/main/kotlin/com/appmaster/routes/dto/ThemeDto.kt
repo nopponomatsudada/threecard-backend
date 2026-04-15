@@ -13,6 +13,7 @@ data class ThemeResponse(
     val description: String?,
     val tagId: String,
     val tagColor: String,
+    val location: String?,
     val authorId: String,
     val bestCount: Int,
     val createdAt: String
@@ -22,7 +23,8 @@ data class ThemeResponse(
 data class CreateThemeRequest(
     val title: String,
     val description: String? = null,
-    val tagId: String
+    val tagId: String,
+    val location: String? = null
 )
 
 fun Theme.toDto(bestCount: Int = 0) = ThemeResponse(
@@ -31,6 +33,7 @@ fun Theme.toDto(bestCount: Int = 0) = ThemeResponse(
     description = description,
     tagId = tagId,
     tagColor = Tag.fromId(tagId)?.color ?: "#9E9E9E",
+    location = location,
     authorId = authorId.value,
     bestCount = bestCount,
     createdAt = createdAt.toString()

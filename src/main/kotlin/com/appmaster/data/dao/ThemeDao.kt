@@ -9,17 +9,22 @@ import com.appmaster.domain.model.valueobject.ThemeId
 import com.appmaster.domain.model.valueobject.UserId
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.core.SortOrder
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class ThemeDao {
 
-    suspend fun findAll(tagId: String?, limit: Int, offset: Int): List<Theme> = dbQuery {
-        val query = if (tagId != null) {
-            ThemesTable.selectAll().where { ThemesTable.tagId eq tagId }
-        } else {
-            ThemesTable.selectAll()
+    suspend fun findAll(tagId: String?, location: String?, limit: Int, offset: Int): List<Theme> = dbQuery {
+        val query = ThemesTable.selectAll().apply {
+            val conditions = buildList {
+                if (tagId != null) add(ThemesTable.tagId eq tagId)
+                if (location != null) add(ThemesTable.location eq location)
+            }
+            if (conditions.isNotEmpty()) {
+                where { conditions.reduce { acc, op -> acc and op } }
+            }
         }
         query
             .orderBy(ThemesTable.createdAt to SortOrder.DESC)
@@ -40,6 +45,7 @@ class ThemeDao {
             it[title] = theme.title
             it[description] = theme.description
             it[tagId] = theme.tagId
+            it[location] = theme.location
             it[authorId] = theme.authorId.value
             it[createdAt] = theme.createdAt
         }
@@ -51,6 +57,7 @@ class ThemeDao {
         title = this[ThemesTable.title],
         description = this[ThemesTable.description],
         tagId = this[ThemesTable.tagId],
+        location = this[ThemesTable.location],
         authorId = UserId(this[ThemesTable.authorId]),
         createdAt = this[ThemesTable.createdAt]
     )

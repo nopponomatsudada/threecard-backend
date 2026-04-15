@@ -14,6 +14,7 @@ class CreateThemeUseCase(
         val title: String,
         val description: String?,
         val tagId: String,
+        val location: String?,
         val authorId: UserId
     )
 
@@ -31,10 +32,15 @@ class CreateThemeUseCase(
             throw DomainException(DomainError.TagNotSelected)
         }
 
+        if (params.location != null && params.location.length > 100) {
+            throw DomainException(DomainError.ValidationError("場所は100文字以内で入力してください"))
+        }
+
         val theme = Theme.create(
             title = params.title,
             description = params.description,
             tagId = params.tagId,
+            location = params.location?.trim()?.ifEmpty { null },
             authorId = params.authorId
         )
         return themeRepository.save(theme)

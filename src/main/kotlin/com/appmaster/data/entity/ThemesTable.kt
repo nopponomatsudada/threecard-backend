@@ -10,6 +10,7 @@ object ThemesTable : Table("themes") {
     val title = varchar("title", 100)
     val description = varchar("description", 140).nullable()
     val tagId = varchar("tag_id", 50).index()
+    val location = varchar("location", 100).nullable()
     val authorId = varchar("author_id", 36).references(UsersTable.id)
     val createdAt = timestamp("created_at").index()
 
