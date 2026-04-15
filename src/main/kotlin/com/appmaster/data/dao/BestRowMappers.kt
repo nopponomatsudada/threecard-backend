@@ -21,6 +21,7 @@ internal fun ResultRow.toBestWithoutItems(): Best = Best(
     authorId = UserId(this[BestsTable.authorId]),
     authorDisplayId = this[UsersTable.displayId],
     items = emptyList(),
+    forkedFromBestId = this[BestsTable.forkedFromBestId]?.let { BestId(it) },
     createdAt = this[BestsTable.createdAt]
 )
 

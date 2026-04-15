@@ -15,6 +15,7 @@ data class Best(
     val authorId: UserId,
     val authorDisplayId: String,
     val items: List<BestItem>,
+    val forkedFromBestId: BestId? = null,
     val createdAt: Instant
 ) {
     companion object {
@@ -22,7 +23,8 @@ data class Best(
             themeId: ThemeId,
             authorId: UserId,
             items: List<ItemInput>,
-            authorDisplayId: String = ""
+            authorDisplayId: String = "",
+            forkedFromBestId: BestId? = null
         ): Best {
             val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
             val bestId = BestId.generate()
@@ -40,6 +42,7 @@ data class Best(
                         description = input.description
                     )
                 },
+                forkedFromBestId = forkedFromBestId,
                 createdAt = now
             )
         }

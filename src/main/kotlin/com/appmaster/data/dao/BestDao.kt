@@ -99,6 +99,7 @@ class BestDao {
             it[id] = best.id.value
             it[themeId] = best.themeId.value
             it[authorId] = best.authorId.value
+            it[forkedFromBestId] = best.forkedFromBestId?.value
             it[createdAt] = best.createdAt
         }
 

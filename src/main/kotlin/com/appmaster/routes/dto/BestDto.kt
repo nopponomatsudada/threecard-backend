@@ -61,6 +61,7 @@ data class BestWithThemeResponse(
     val authorId: String,
     val authorDisplayId: String,
     val items: List<BestItemResponse>,
+    val isForked: Boolean,
     val createdAt: String
 )
 
@@ -79,5 +80,6 @@ fun BestWithTheme.toDto() = BestWithThemeResponse(
             description = item.description
         )
     },
+    isForked = best.forkedFromBestId != null,
     createdAt = best.createdAt.toString()
 )
