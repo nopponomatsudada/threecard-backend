@@ -9,7 +9,7 @@ import com.appmaster.domain.repository.ThemeRepository
 class GetThemeDetailUseCase(
     private val themeRepository: ThemeRepository
 ) {
-    suspend operator fun invoke(themeId: ThemeId): Theme =
+    suspend operator fun invoke(themeId: ThemeId): Pair<Theme, Int> =
         themeRepository.findById(themeId)
             ?: throw DomainException(DomainError.NotFound("テーマ"))
 }

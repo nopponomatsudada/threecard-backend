@@ -39,6 +39,8 @@ tags:
     description: ユーザー API
   - name: health
     description: ヘルスチェック
+  - name: admin
+    description: 管理者 API（API Key 認証）
 
 paths:
   # ============================================
@@ -621,6 +623,117 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  # ============================================
+  # Admin / Moderation
+  # ============================================
+  /api/v1/admin/moderation/bests:
+    get:
+      tags: [admin]
+      operationId: getModerationBests
+      summary: モデレーション対象ベスト一覧
+      security:
+        - adminAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ModerationStatus'
+          description: フィルタするステータス（デフォルト pending）
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBestList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/admin/moderation/bests/{bestId}:
+    patch:
+      tags: [admin]
+      operationId: reviewBest
+      summary: ベストのモデレーション判定
+      security:
+        - adminAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateModerationStatusRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/moderation/themes:
+    get:
+      tags: [admin]
+      operationId: getModerationThemes
+      summary: モデレーション対象テーマ一覧
+      security:
+        - adminAuth: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/ModerationStatus'
+          description: フィルタするステータス（デフォルト pending）
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseThemeList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/admin/moderation/themes/{themeId}:
+    patch:
+      tags: [admin]
+      operationId: reviewTheme
+      summary: テーマのモデレーション判定
+      security:
+        - adminAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ThemeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateModerationStatusRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTheme'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   # ============================================
   # Security Schemes
@@ -630,6 +743,11 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+
+    adminAuth:
+      type: http
+      scheme: bearer
+      description: Admin API Key（Authorization: Bearer <ADMIN_API_KEY>）
 
   # ============================================
   # Parameters
@@ -830,7 +948,7 @@ components:
     # --- Theme ---
     ThemeDto:
       type: object
-      required: [id, title, tagId, authorId, bestCount, createdAt]
+      required: [id, title, tagId, authorId, bestCount, moderationStatus, createdAt]
       properties:
         id:
           type: string
@@ -846,6 +964,8 @@ components:
         bestCount:
           type: integer
           description: 投稿されたカード数
+        moderationStatus:
+          $ref: '#/components/schemas/ModerationStatus'
         createdAt:
           type: string
           format: date-time
@@ -892,7 +1012,7 @@ components:
     # --- Best ---
     BestDto:
       type: object
-      required: [id, themeId, authorId, authorDisplayId, items, createdAt]
+      required: [id, themeId, authorId, authorDisplayId, items, moderationStatus, createdAt]
       properties:
         id:
           type: string
@@ -908,6 +1028,8 @@ components:
           maxItems: 3
           items:
             $ref: '#/components/schemas/BestItemDto'
+        moderationStatus:
+          $ref: '#/components/schemas/ModerationStatus'
         createdAt:
           type: string
           format: date-time
@@ -1065,6 +1187,26 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    # --- Moderation ---
+    ModerationStatus:
+      type: string
+      enum: [pending, approved, rejected, reported]
+      description: |
+        コンテンツのモデレーションステータス。
+        - pending: 新規作成、管理者チェック待ち
+        - approved: 承認済み、公開
+        - rejected: 却下、非公開
+        - reported: ユーザー通報（将来）、再チェック待ち
+
+    UpdateModerationStatusRequest:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [approved, rejected]
+          description: 管理者が設定するステータス（approved または rejected）
 
     # --- Common ---
     Meta:

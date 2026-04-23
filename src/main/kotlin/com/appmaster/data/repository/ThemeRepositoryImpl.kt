@@ -9,10 +9,11 @@ class ThemeRepositoryImpl(
     private val dao: ThemeDao
 ) : ThemeRepository {
 
-    override suspend fun findAll(tagId: String?, areaCode: String?, limit: Int, offset: Int): List<Theme> =
+    override suspend fun findAll(tagId: String?, areaCode: String?, limit: Int, offset: Int): List<Pair<Theme, Int>> =
         dao.findAll(tagId, areaCode, limit, offset)
 
-    override suspend fun findById(id: ThemeId): Theme? = dao.findById(id)
+    override suspend fun findById(id: ThemeId): Pair<Theme, Int>? =
+        dao.findById(id)
 
     override suspend fun save(theme: Theme): Theme = dao.insert(theme)
 }

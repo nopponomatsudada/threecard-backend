@@ -37,7 +37,7 @@ fun Route.themeRoutes() {
                         offset = pagination.offset,
                     )
                 )
-                call.respond(ApiResponse(data = themes.map { it.toDto() }))
+                call.respond(ApiResponse(data = themes.map { (theme, bestCount) -> theme.toDto(bestCount) }))
             }
 
             post {
@@ -58,8 +58,8 @@ fun Route.themeRoutes() {
 
             get("/{themeId}") {
                 val themeIdStr = call.parameters["themeId"]!!
-                val theme = getThemeDetailUseCase(ThemeId(themeIdStr))
-                call.respond(ApiResponse(data = theme.toDto()))
+                val (theme, bestCount) = getThemeDetailUseCase(ThemeId(themeIdStr))
+                call.respond(ApiResponse(data = theme.toDto(bestCount)))
             }
         }
         }

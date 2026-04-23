@@ -26,6 +26,7 @@ data class BestResponse(
     val authorId: String,
     val authorDisplayId: String,
     val items: List<BestItemResponse>,
+    val moderationStatus: String,
     val createdAt: String
 )
 
@@ -48,6 +49,7 @@ fun Best.toDto() = BestResponse(
             description = item.description
         )
     },
+    moderationStatus = moderationStatus.id,
     createdAt = createdAt.toString()
 )
 
@@ -62,6 +64,7 @@ data class BestWithThemeResponse(
     val authorDisplayId: String,
     val items: List<BestItemResponse>,
     val isForked: Boolean,
+    val moderationStatus: String,
     val createdAt: String
 )
 
@@ -81,5 +84,6 @@ fun BestWithTheme.toDto() = BestWithThemeResponse(
         )
     },
     isForked = best.forkedFromBestId != null,
+    moderationStatus = best.moderationStatus.id,
     createdAt = best.createdAt.toString()
 )

@@ -12,6 +12,7 @@ object ThemesTable : Table("themes") {
     val tagId = varchar("tag_id", 50).index()
     val areaCode = varchar("area_code", 10).nullable()
     val authorId = varchar("author_id", 36).references(UsersTable.id)
+    val moderationStatus = varchar("moderation_status", 20).default("approved").index()
     val createdAt = timestamp("created_at").index()
 
     override val primaryKey = PrimaryKey(id)

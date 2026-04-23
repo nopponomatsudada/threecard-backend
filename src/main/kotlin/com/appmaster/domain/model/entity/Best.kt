@@ -1,5 +1,6 @@
 package com.appmaster.domain.model.entity
 
+import com.appmaster.domain.model.`enum`.ModerationStatus
 import com.appmaster.domain.model.`enum`.Rank
 import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.ThemeId
@@ -16,6 +17,7 @@ data class Best(
     val authorDisplayId: String,
     val items: List<BestItem>,
     val forkedFromBestId: BestId? = null,
+    val moderationStatus: ModerationStatus = ModerationStatus.PENDING,
     val createdAt: Instant
 ) {
     companion object {

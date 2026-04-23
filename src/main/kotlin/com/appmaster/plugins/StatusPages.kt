@@ -99,6 +99,7 @@ private fun mapDomainError(error: DomainError): Pair<HttpStatusCode, ErrorRespon
         DomainError.TagNotSelected,
         DomainError.CollectionTitleRequired,
         DomainError.CollectionTitleTooLong,
+        DomainError.InvalidModerationStatus,
         is DomainError.ValidationError -> HttpStatusCode.BadRequest
     }
     return statusCode to ErrorResponse(

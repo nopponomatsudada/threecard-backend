@@ -10,6 +10,7 @@ import com.appmaster.data.entity.CollectionsTable
 import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.DiscoverCard
+import com.appmaster.domain.model.`enum`.ModerationStatus
 import com.appmaster.domain.model.`enum`.Tag
 import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.ThemeId
@@ -24,14 +25,17 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 class DiscoverDao {
 
     suspend fun getRandomCards(userId: UserId, tagId: String?, limit: Int): List<DiscoverCard> = dbQuery {
+        val conditions = buildList {
+            add((BestsTable.moderationStatus eq ModerationStatus.APPROVED.id) and
+                (ThemesTable.moderationStatus eq ModerationStatus.APPROVED.id))
+            if (tagId != null) add(ThemesTable.tagId eq tagId)
+        }
+
         var query = BestsTable
             .join(ThemesTable, JoinType.INNER, BestsTable.themeId, ThemesTable.id)
             .join(UsersTable, JoinType.INNER, BestsTable.authorId, UsersTable.id)
             .selectAll()
-
-        if (tagId != null) {
-            query = query.where { ThemesTable.tagId eq tagId }
-        }
+            .where { conditions.reduce { acc, op -> acc and op } }
 
         val rows = query
             .orderBy(org.jetbrains.exposed.v1.core.Random() to SortOrder.ASC)

@@ -36,6 +36,9 @@ sealed class DomainError(
     data object DuplicateBookmark : DomainError("DUPLICATE_BOOKMARK", "既に保存済みです")
     data object CollectionTitleTooLong : DomainError("COLLECTION_TITLE_TOO_LONG", "50文字以内で入力してください")
 
+    // Moderation Errors (4xxx)
+    data object InvalidModerationStatus : DomainError("INVALID_MODERATION_STATUS", "無効なモデレーションステータスです")
+
     // Server Errors (5xxx)
     data object ServerError : DomainError("SERVER_ERROR", "エラーが発生しました。時間をおいて再度お試しください")
 

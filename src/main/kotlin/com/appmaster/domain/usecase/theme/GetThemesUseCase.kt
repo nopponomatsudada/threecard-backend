@@ -13,7 +13,7 @@ class GetThemesUseCase(
         val offset: Int
     )
 
-    suspend operator fun invoke(params: Params): List<Theme> {
+    suspend operator fun invoke(params: Params): List<Pair<Theme, Int>> {
         val clampedLimit = params.limit.coerceIn(1, 50)
         val safeOffset = maxOf(0, params.offset)
         return themeRepository.findAll(params.tagId, params.areaCode, clampedLimit, safeOffset)

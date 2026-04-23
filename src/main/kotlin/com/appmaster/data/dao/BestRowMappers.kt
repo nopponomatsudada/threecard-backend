@@ -7,6 +7,7 @@ import com.appmaster.data.entity.BestsTable
 import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.Best
 import com.appmaster.domain.model.entity.BestItem
+import com.appmaster.domain.model.`enum`.ModerationStatus
 import com.appmaster.domain.model.`enum`.Rank
 import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.ThemeId
@@ -22,6 +23,7 @@ internal fun ResultRow.toBestWithoutItems(): Best = Best(
     authorDisplayId = this[UsersTable.displayId],
     items = emptyList(),
     forkedFromBestId = this[BestsTable.forkedFromBestId]?.let { BestId(it) },
+    moderationStatus = ModerationStatus.fromId(this[BestsTable.moderationStatus]) ?: ModerationStatus.PENDING,
     createdAt = this[BestsTable.createdAt]
 )
 

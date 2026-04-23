@@ -5,6 +5,7 @@ package com.appmaster.di
 import com.appmaster.data.dao.BestDao
 import com.appmaster.data.dao.CollectionDao
 import com.appmaster.data.dao.DiscoverDao
+import com.appmaster.data.dao.ModerationDao
 import com.appmaster.data.dao.JwtBlocklistDao
 import com.appmaster.data.dao.RefreshTokenDao
 import com.appmaster.data.dao.ThemeDao
@@ -13,6 +14,7 @@ import com.appmaster.data.repository.BestRepositoryImpl
 import com.appmaster.data.repository.CollectionRepositoryImpl
 import com.appmaster.data.repository.DiscoverRepositoryImpl
 import com.appmaster.data.repository.JwtBlocklistRepositoryImpl
+import com.appmaster.data.repository.ModerationRepositoryImpl
 import com.appmaster.data.repository.RefreshTokenRepositoryImpl
 import com.appmaster.data.repository.ThemeRepositoryImpl
 import com.appmaster.data.repository.UserRepositoryImpl
@@ -22,6 +24,7 @@ import com.appmaster.domain.repository.BestRepository
 import com.appmaster.domain.repository.CollectionRepository
 import com.appmaster.domain.repository.DiscoverRepository
 import com.appmaster.domain.repository.JwtBlocklistRepository
+import com.appmaster.domain.repository.ModerationRepository
 import com.appmaster.domain.repository.RefreshTokenRepository
 import com.appmaster.domain.repository.ThemeRepository
 import com.appmaster.domain.repository.UserRepository
@@ -41,6 +44,9 @@ import com.appmaster.domain.usecase.collection.GetCollectionCardsUseCase
 import com.appmaster.domain.usecase.collection.GetCollectionsUseCase
 import com.appmaster.domain.usecase.collection.RemoveCardFromCollectionUseCase
 import com.appmaster.domain.usecase.discover.GetRandomCardsUseCase
+import com.appmaster.domain.usecase.moderation.GetPendingContentsUseCase
+import com.appmaster.domain.usecase.moderation.ReviewBestUseCase
+import com.appmaster.domain.usecase.moderation.ReviewThemeUseCase
 import com.appmaster.domain.usecase.theme.CreateThemeUseCase
 import com.appmaster.domain.usecase.theme.GetThemeDetailUseCase
 import com.appmaster.domain.usecase.theme.GetThemesUseCase
@@ -129,4 +135,11 @@ fun appModule(environment: ApplicationEnvironment) = module {
     single { GetCollectionCardsUseCase(get()) }
     single { AddCardToCollectionUseCase(get(), get()) }
     single { RemoveCardFromCollectionUseCase(get()) }
+
+    // Moderation
+    single { ModerationDao() }
+    single<ModerationRepository> { ModerationRepositoryImpl(get()) }
+    single { GetPendingContentsUseCase(get()) }
+    single { ReviewBestUseCase(get(), get()) }
+    single { ReviewThemeUseCase(get(), get()) }
 }

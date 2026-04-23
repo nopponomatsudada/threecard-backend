@@ -1,5 +1,6 @@
 package com.appmaster.domain.model.entity
 
+import com.appmaster.domain.model.`enum`.ModerationStatus
 import com.appmaster.domain.model.valueobject.ThemeId
 import com.appmaster.domain.model.valueobject.UserId
 import kotlin.time.ExperimentalTime
@@ -13,6 +14,7 @@ data class Theme(
     val tagId: String,
     val areaCode: String?,
     val authorId: UserId,
+    val moderationStatus: ModerationStatus = ModerationStatus.PENDING,
     val createdAt: Instant
 ) {
     companion object {

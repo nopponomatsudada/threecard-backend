@@ -132,6 +132,7 @@ class ThemeRoutesTest {
             contentType(ContentType.Application.Json)
             setBody("""{"title":"Theme A","tagId":"books"}""")
         }
+        approveAllContent()
 
         val response = client.get("/api/v1/themes") {
             header(HttpHeaders.Authorization, "Bearer $token")

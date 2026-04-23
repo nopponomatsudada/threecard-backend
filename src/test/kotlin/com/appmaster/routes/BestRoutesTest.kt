@@ -191,6 +191,7 @@ class BestRoutesTest {
             contentType(ContentType.Application.Json)
             setBody("""{"items":[{"rank":1,"name":"Item 1"},{"rank":2,"name":"Item 2"}]}""")
         }
+        approveAllContent()
 
         val response = client.get("/api/v1/themes/$themeId/bests") {
             header(HttpHeaders.Authorization, "Bearer $token")

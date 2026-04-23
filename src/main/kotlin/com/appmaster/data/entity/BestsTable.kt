@@ -11,6 +11,7 @@ object BestsTable : Table("bests") {
     val authorId = varchar("author_id", 36).references(UsersTable.id)
     val forkedFromBestId = varchar("forked_from_best_id", 36)
         .references(id).nullable()
+    val moderationStatus = varchar("moderation_status", 20).default("approved").index()
     val createdAt = timestamp("created_at").index()
 
     override val primaryKey = PrimaryKey(id)

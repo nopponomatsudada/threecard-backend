@@ -5,6 +5,7 @@ package com.appmaster.routes
 import com.appmaster.data.dao.BestDao
 import com.appmaster.data.dao.CollectionDao
 import com.appmaster.data.dao.DiscoverDao
+import com.appmaster.data.dao.ModerationDao
 import com.appmaster.data.dao.JwtBlocklistDao
 import com.appmaster.data.dao.RefreshTokenDao
 import com.appmaster.data.dao.ThemeDao
@@ -21,6 +22,7 @@ import com.appmaster.data.repository.BestRepositoryImpl
 import com.appmaster.data.repository.CollectionRepositoryImpl
 import com.appmaster.data.repository.DiscoverRepositoryImpl
 import com.appmaster.data.repository.JwtBlocklistRepositoryImpl
+import com.appmaster.data.repository.ModerationRepositoryImpl
 import com.appmaster.data.repository.RefreshTokenRepositoryImpl
 import com.appmaster.data.repository.ThemeRepositoryImpl
 import com.appmaster.data.repository.UserRepositoryImpl
@@ -29,7 +31,9 @@ import com.appmaster.data.service.JwtTokenProvider
 import com.appmaster.domain.repository.BestRepository
 import com.appmaster.domain.repository.CollectionRepository
 import com.appmaster.domain.repository.DiscoverRepository
+import com.appmaster.domain.model.`enum`.ModerationStatus
 import com.appmaster.domain.repository.JwtBlocklistRepository
+import com.appmaster.domain.repository.ModerationRepository
 import com.appmaster.domain.repository.RefreshTokenRepository
 import com.appmaster.domain.repository.ThemeRepository
 import com.appmaster.domain.repository.UserRepository
@@ -49,6 +53,9 @@ import com.appmaster.domain.usecase.collection.GetCollectionCardsUseCase
 import com.appmaster.domain.usecase.collection.GetCollectionsUseCase
 import com.appmaster.domain.usecase.collection.RemoveCardFromCollectionUseCase
 import com.appmaster.domain.usecase.discover.GetRandomCardsUseCase
+import com.appmaster.domain.usecase.moderation.GetPendingContentsUseCase
+import com.appmaster.domain.usecase.moderation.ReviewBestUseCase
+import com.appmaster.domain.usecase.moderation.ReviewThemeUseCase
 import com.appmaster.domain.usecase.theme.CreateThemeUseCase
 import com.appmaster.domain.usecase.theme.GetThemeDetailUseCase
 import com.appmaster.domain.usecase.theme.GetThemesUseCase
@@ -69,9 +76,11 @@ import io.ktor.server.testing.*
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.Database
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
 import org.koin.core.module.Module
 import org.koin.dsl.module
 import org.koin.ktor.plugin.Koin
@@ -155,9 +164,24 @@ fun fullTestModule() = module {
     single { GetCollectionCardsUseCase(get()) }
     single { AddCardToCollectionUseCase(get(), get()) }
     single { RemoveCardFromCollectionUseCase(get()) }
+    // Moderation
+    single { ModerationDao() }
+    single<ModerationRepository> { ModerationRepositoryImpl(get()) }
+    single { GetPendingContentsUseCase(get()) }
+    single { ReviewBestUseCase(get(), get()) }
+    single { ReviewThemeUseCase(get(), get()) }
 }
 
 fun ApplicationTestBuilder.configureFullTestApp() {
+    environment {
+        config = io.ktor.server.config.MapApplicationConfig(
+            "jwt.secret" to testJwtConfig.secret,
+            "jwt.issuer" to testJwtConfig.issuer,
+            "jwt.audience" to testJwtConfig.audience,
+            "jwt.realm" to testJwtConfig.realm,
+            "ktor.admin.apiKey" to TEST_ADMIN_API_KEY
+        )
+    }
     application {
         // DI must be installed before Authentication: validate{} pulls
         // JwtBlocklistRepository from Koin.
@@ -174,6 +198,24 @@ fun ApplicationTestBuilder.configureFullTestApp() {
             bestRoutes()
             discoverRoutes()
             collectionRoutes()
+            moderationRoutes()
+        }
+    }
+}
+
+internal const val TEST_ADMIN_API_KEY = "test-admin-key-12345"
+
+/**
+ * Approve all PENDING bests and themes so they appear in Discover/Theme listings.
+ * Call this after creating test content via API.
+ */
+internal fun approveAllContent() {
+    transaction {
+        BestsTable.update({ BestsTable.moderationStatus eq ModerationStatus.PENDING.id }) {
+            it[moderationStatus] = ModerationStatus.APPROVED.id
+        }
+        ThemesTable.update({ ThemesTable.moderationStatus eq ModerationStatus.PENDING.id }) {
+            it[moderationStatus] = ModerationStatus.APPROVED.id
         }
     }
 }

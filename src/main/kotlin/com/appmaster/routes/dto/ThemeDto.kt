@@ -18,6 +18,7 @@ data class ThemeResponse(
     val areaName: String?,
     val authorId: String,
     val bestCount: Int,
+    val moderationStatus: String,
     val createdAt: String
 )
 
@@ -41,6 +42,7 @@ fun Theme.toDto(bestCount: Int = 0): ThemeResponse {
         areaName = area?.nameEn,
         authorId = authorId.value,
         bestCount = bestCount,
+        moderationStatus = moderationStatus.id,
         createdAt = createdAt.toString()
     )
 }

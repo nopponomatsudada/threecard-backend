@@ -36,6 +36,7 @@ class DiscoverRoutesTest {
             contentType(ContentType.Application.Json)
             setBody("""{"items":[{"rank":1,"name":"Item 1"}]}""")
         }
+        approveAllContent()
         return themeId
     }
 

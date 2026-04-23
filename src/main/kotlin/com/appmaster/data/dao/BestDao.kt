@@ -9,6 +9,7 @@ import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.Best
 import com.appmaster.domain.model.entity.BestWithTheme
+import com.appmaster.domain.model.`enum`.ModerationStatus
 import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.ThemeId
 import com.appmaster.domain.model.valueobject.UserId
@@ -35,7 +36,7 @@ class BestDao {
         val bests = BestsTable
             .join(UsersTable, JoinType.INNER, BestsTable.authorId, UsersTable.id)
             .selectAll()
-            .where { BestsTable.themeId eq themeId.value }
+            .where { (BestsTable.themeId eq themeId.value) and (BestsTable.moderationStatus eq ModerationStatus.APPROVED.id) }
             .orderBy(BestsTable.createdAt to SortOrder.DESC)
             .limit(limit).offset(offset.toLong())
             .map { it.toBestWithoutItems() }
@@ -100,6 +101,7 @@ class BestDao {
             it[themeId] = best.themeId.value
             it[authorId] = best.authorId.value
             it[forkedFromBestId] = best.forkedFromBestId?.value
+            it[moderationStatus] = best.moderationStatus.id
             it[createdAt] = best.createdAt
         }
 

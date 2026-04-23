@@ -12,6 +12,9 @@ import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import org.koin.ktor.ext.get
+import org.slf4j.LoggerFactory
+
+private val authLog = LoggerFactory.getLogger("com.appmaster.auth")
 
 fun Application.configureAuthentication() {
     // JwtConfig is loaded once in AppModule (single source of truth, includes
@@ -19,7 +22,24 @@ fun Application.configureAuthentication() {
     val config: JwtConfig = get()
     val blocklist: JwtBlocklistRepository = get()
 
+    val adminApiKey = environment.config.propertyOrNull("ktor.admin.apiKey")?.getString()
+        ?: System.getenv("ADMIN_API_KEY")
+
+    if (adminApiKey.isNullOrBlank()) {
+        authLog.warn("ADMIN_API_KEY is not set — admin endpoints will reject all requests")
+    }
+
     install(Authentication) {
+        bearer("admin") {
+            authenticate { credential ->
+                if (adminApiKey != null && credential.token == adminApiKey) {
+                    UserIdPrincipal("admin")
+                } else {
+                    null
+                }
+            }
+        }
+
         jwt("jwt") {
             this.realm = config.realm
 
