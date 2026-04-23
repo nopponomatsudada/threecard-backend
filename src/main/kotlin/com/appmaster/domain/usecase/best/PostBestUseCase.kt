@@ -30,7 +30,7 @@ class PostBestUseCase(
     )
 
     suspend operator fun invoke(params: Params): Best {
-        themeRepository.findById(params.themeId)?.first
+        themeRepository.findById(params.themeId)?.theme
             ?: throw DomainException(DomainError.NotFound("テーマ"))
 
         if (params.items.isEmpty() || params.items.size > 3) {

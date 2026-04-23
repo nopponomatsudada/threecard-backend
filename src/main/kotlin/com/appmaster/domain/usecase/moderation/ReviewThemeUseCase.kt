@@ -25,6 +25,6 @@ class ReviewThemeUseCase(
         val updated = moderationRepository.updateThemeStatus(params.themeId, params.status)
         if (!updated) throw DomainException(DomainError.NotFound("テーマ"))
 
-        return themeRepository.findById(params.themeId)!!.first
+        return themeRepository.findById(params.themeId)!!.theme
     }
 }

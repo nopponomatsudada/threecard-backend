@@ -1,6 +1,6 @@
 package com.appmaster.domain.usecase.theme
 
-import com.appmaster.domain.model.entity.Theme
+import com.appmaster.domain.model.entity.ThemeWithBestCount
 import com.appmaster.domain.repository.ThemeRepository
 
 class GetThemesUseCase(
@@ -13,7 +13,7 @@ class GetThemesUseCase(
         val offset: Int
     )
 
-    suspend operator fun invoke(params: Params): List<Pair<Theme, Int>> {
+    suspend operator fun invoke(params: Params): List<ThemeWithBestCount> {
         val clampedLimit = params.limit.coerceIn(1, 50)
         val safeOffset = maxOf(0, params.offset)
         return themeRepository.findAll(params.tagId, params.areaCode, clampedLimit, safeOffset)
