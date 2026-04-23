@@ -12,16 +12,15 @@ CREATE INDEX IF NOT EXISTS idx_bookmarks_user_id    ON bookmarks (user_id);
 CREATE INDEX IF NOT EXISTS idx_bookmarks_created_at ON bookmarks (created_at);
 
 -- Migrate existing collection_cards data into bookmarks (one bookmark per unique user+best pair)
--- Uses MERGE for H2 compatibility (ON CONFLICT is PostgreSQL-only)
-MERGE INTO bookmarks (id, user_id, best_id, created_at)
-KEY (user_id, best_id)
+INSERT INTO bookmarks (id, user_id, best_id, created_at)
 SELECT
     collection_cards.id,
     collections.user_id,
     collection_cards.best_id,
     CURRENT_TIMESTAMP
 FROM collection_cards
-JOIN collections ON collection_cards.collection_id = collections.id;
+JOIN collections ON collection_cards.collection_id = collections.id
+ON CONFLICT (user_id, best_id) DO NOTHING;
 
 -- Drop old tables (collection_cards first due to FK)
 DROP TABLE IF EXISTS collection_cards;
