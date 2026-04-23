@@ -3,16 +3,12 @@
 package com.appmaster.data.dao
 
 import com.appmaster.data.dbQuery
-import com.appmaster.data.entity.BestItemsTable
 import com.appmaster.data.entity.BestsTable
 import com.appmaster.data.entity.BookmarksTable
 import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.DiscoverCard
 import com.appmaster.domain.model.`enum`.ModerationStatus
-import com.appmaster.domain.model.`enum`.Tag
-import com.appmaster.domain.model.valueobject.BestId
-import com.appmaster.domain.model.valueobject.ThemeId
 import com.appmaster.domain.model.valueobject.UserId
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -44,33 +40,13 @@ class DiscoverDao {
         if (rows.isEmpty()) return@dbQuery emptyList()
 
         val bestIds = rows.map { it[BestsTable.id] }
-
-        val itemsByBestId = BestItemsTable.selectAll()
-            .where { BestItemsTable.bestId inList bestIds }
-            .map { it.toBestItem() }
-            .groupBy { it.bestId.value }
+        val itemsByBestId = fetchItemsByBestIds(bestIds)
 
         val bookmarkedBestIds = BookmarksTable.selectAll()
             .where { (BookmarksTable.bestId inList bestIds) and (BookmarksTable.userId eq userId.value) }
             .map { it[BookmarksTable.bestId] }
             .toSet()
 
-        rows.map { row ->
-            val bestId = row[BestsTable.id]
-            val tagIdValue = row[ThemesTable.tagId]
-            val tag = Tag.fromId(tagIdValue)
-
-            DiscoverCard(
-                id = BestId(bestId),
-                themeId = ThemeId(row[BestsTable.themeId]),
-                themeTitle = row[ThemesTable.title],
-                tagId = tagIdValue,
-                tagName = tag?.label ?: tagIdValue,
-                authorDisplayId = row[UsersTable.displayId],
-                items = itemsByBestId[bestId]?.sortedBy { it.rank.value } ?: emptyList(),
-                isBookmarked = bestId in bookmarkedBestIds,
-                createdAt = row[BestsTable.createdAt]
-            )
-        }
+        rows.map { row -> row.toDiscoverCard(itemsByBestId, row[BestsTable.id] in bookmarkedBestIds) }
     }
 }

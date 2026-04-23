@@ -16,5 +16,8 @@ class ThemeRepositoryImpl(
     override suspend fun findById(id: ThemeId): ThemeWithBestCount? =
         dao.findById(id)
 
+    override suspend fun findThemeOnly(id: ThemeId): Theme? =
+        dao.findThemeOnly(id)
+
     override suspend fun save(theme: Theme): Theme = dao.insert(theme)
 }

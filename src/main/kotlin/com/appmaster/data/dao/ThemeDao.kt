@@ -52,6 +52,13 @@ class ThemeDao {
         ThemeWithBestCount(theme, bestCount)
     }
 
+    suspend fun findThemeOnly(id: ThemeId): Theme? = dbQuery {
+        ThemesTable.selectAll()
+            .where { ThemesTable.id eq id.value }
+            .singleOrNull()
+            ?.toTheme()
+    }
+
     suspend fun insert(theme: Theme): Theme = dbQuery {
         ThemesTable.insert {
             it[ThemesTable.id] = theme.id.value

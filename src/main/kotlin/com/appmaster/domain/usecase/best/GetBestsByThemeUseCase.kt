@@ -18,7 +18,7 @@ class GetBestsByThemeUseCase(
     )
 
     suspend operator fun invoke(params: Params): List<Best> {
-        themeRepository.findById(params.themeId)?.theme
+        themeRepository.findThemeOnly(params.themeId)
             ?: throw DomainException(DomainError.NotFound("テーマ"))
 
         val clampedLimit = params.limit.coerceIn(1, 50)
