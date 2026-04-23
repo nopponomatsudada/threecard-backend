@@ -22,7 +22,7 @@ class UserRoutesTest {
     @AfterTest fun teardown() = tearDownTestDatabase()
 
     @Test
-    fun `GET users me returns bestCount 0 and collectionCount 0 for new user`() = testApplication {
+    fun `GET users me returns bestCount 0 and bookmarkCount 0 for new user`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()
         val token = client.getToken("device-user-001")
@@ -34,7 +34,7 @@ class UserRoutesTest {
         assertEquals(HttpStatusCode.OK, response.status)
         val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonObject
         assertEquals(0, data["bestCount"]!!.jsonPrimitive.int)
-        assertEquals(0, data["collectionCount"]!!.jsonPrimitive.int)
+        assertEquals(0, data["bookmarkCount"]!!.jsonPrimitive.int)
         assertEquals("free", data["plan"]!!.jsonPrimitive.content)
     }
 
@@ -71,31 +71,44 @@ class UserRoutesTest {
     }
 
     @Test
-    fun `GET users me returns correct collectionCount after creating collections`() = testApplication {
+    fun `GET users me returns correct bookmarkCount after bookmarking`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()
-        val token = client.getToken("device-user-003")
+        val authorToken = client.getToken("device-user-003a")
 
-        // Create two collections
-        client.post("/api/v1/collections") {
-            header(HttpHeaders.Authorization, "Bearer $token")
+        // Create theme + best (by another user)
+        val themeResp = client.post("/api/v1/themes") {
+            header(HttpHeaders.Authorization, "Bearer $authorToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"title":"Collection 1"}""")
+            setBody("""{"title":"Test Theme","tagId":"music"}""")
         }
-        client.post("/api/v1/collections") {
-            header(HttpHeaders.Authorization, "Bearer $token")
+        val themeId = Json.parseToJsonElement(themeResp.bodyAsText())
+            .jsonObject["data"]!!.jsonObject["id"]!!.jsonPrimitive.content
+        val bestResp = client.post("/api/v1/themes/$themeId/bests") {
+            header(HttpHeaders.Authorization, "Bearer $authorToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"title":"Collection 2"}""")
+            setBody("""{"items":[{"rank":1,"name":"Item A"}]}""")
+        }
+        approveAllContent()
+        val bestId = Json.parseToJsonElement(bestResp.bodyAsText())
+            .jsonObject["data"]!!.jsonObject["id"]!!.jsonPrimitive.content
+
+        // Bookmark the best as a different user
+        val viewerToken = client.getToken("device-user-003b")
+        client.post("/api/v1/bookmarks") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"bestId":"$bestId"}""")
         }
 
         // Check profile
         val response = client.get("/api/v1/users/me") {
-            header(HttpHeaders.Authorization, "Bearer $token")
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
         val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonObject
-        assertEquals(2, data["collectionCount"]!!.jsonPrimitive.int)
+        assertEquals(1, data["bookmarkCount"]!!.jsonPrimitive.int)
     }
 
     @Test

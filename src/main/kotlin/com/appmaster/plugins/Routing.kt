@@ -13,7 +13,7 @@ fun Application.configureRouting() {
         themeRoutes()
         bestRoutes()
         discoverRoutes()
-        collectionRoutes()
+        bookmarkRoutes()
         moderationRoutes()
     }
 }

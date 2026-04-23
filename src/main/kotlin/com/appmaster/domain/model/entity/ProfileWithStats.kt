@@ -7,5 +7,5 @@ package com.appmaster.domain.model.entity
 data class ProfileWithStats(
     val user: User,
     val bestCount: Int,
-    val collectionCount: Int
+    val bookmarkCount: Int
 )

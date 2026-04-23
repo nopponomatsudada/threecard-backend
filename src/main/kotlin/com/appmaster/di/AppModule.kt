@@ -3,7 +3,7 @@
 package com.appmaster.di
 
 import com.appmaster.data.dao.BestDao
-import com.appmaster.data.dao.CollectionDao
+import com.appmaster.data.dao.BookmarkDao
 import com.appmaster.data.dao.DiscoverDao
 import com.appmaster.data.dao.ModerationDao
 import com.appmaster.data.dao.JwtBlocklistDao
@@ -11,7 +11,7 @@ import com.appmaster.data.dao.RefreshTokenDao
 import com.appmaster.data.dao.ThemeDao
 import com.appmaster.data.dao.UserDao
 import com.appmaster.data.repository.BestRepositoryImpl
-import com.appmaster.data.repository.CollectionRepositoryImpl
+import com.appmaster.data.repository.BookmarkRepositoryImpl
 import com.appmaster.data.repository.DiscoverRepositoryImpl
 import com.appmaster.data.repository.JwtBlocklistRepositoryImpl
 import com.appmaster.data.repository.ModerationRepositoryImpl
@@ -21,7 +21,7 @@ import com.appmaster.data.repository.UserRepositoryImpl
 import com.appmaster.data.service.BcryptPasswordHasher
 import com.appmaster.data.service.JwtTokenProvider
 import com.appmaster.domain.repository.BestRepository
-import com.appmaster.domain.repository.CollectionRepository
+import com.appmaster.domain.repository.BookmarkRepository
 import com.appmaster.domain.repository.DiscoverRepository
 import com.appmaster.domain.repository.JwtBlocklistRepository
 import com.appmaster.domain.repository.ModerationRepository
@@ -37,12 +37,10 @@ import com.appmaster.domain.usecase.auth.RefreshTokenUseCase
 import com.appmaster.domain.usecase.best.GetBestsByThemeUseCase
 import com.appmaster.domain.usecase.best.GetMyBestsUseCase
 import com.appmaster.domain.usecase.best.PostBestUseCase
-import com.appmaster.domain.usecase.collection.AddCardToCollectionUseCase
-import com.appmaster.domain.usecase.collection.CreateCollectionUseCase
-import com.appmaster.domain.usecase.collection.DeleteCollectionUseCase
-import com.appmaster.domain.usecase.collection.GetCollectionCardsUseCase
-import com.appmaster.domain.usecase.collection.GetCollectionsUseCase
-import com.appmaster.domain.usecase.collection.RemoveCardFromCollectionUseCase
+import com.appmaster.domain.usecase.bookmark.AddBookmarkUseCase
+import com.appmaster.domain.usecase.bookmark.CheckBookmarksUseCase
+import com.appmaster.domain.usecase.bookmark.GetBookmarksUseCase
+import com.appmaster.domain.usecase.bookmark.RemoveBookmarkUseCase
 import com.appmaster.domain.usecase.discover.GetRandomCardsUseCase
 import com.appmaster.domain.usecase.moderation.GetPendingContentsUseCase
 import com.appmaster.domain.usecase.moderation.ReviewBestUseCase
@@ -126,15 +124,13 @@ fun appModule(environment: ApplicationEnvironment) = module {
     single<DiscoverRepository> { DiscoverRepositoryImpl(get()) }
     single { GetRandomCardsUseCase(get()) }
 
-    // Collections
-    single { CollectionDao() }
-    single<CollectionRepository> { CollectionRepositoryImpl(get()) }
-    single { GetCollectionsUseCase(get()) }
-    single { CreateCollectionUseCase(get(), get()) }
-    single { DeleteCollectionUseCase(get()) }
-    single { GetCollectionCardsUseCase(get()) }
-    single { AddCardToCollectionUseCase(get(), get()) }
-    single { RemoveCardFromCollectionUseCase(get()) }
+    // Bookmarks
+    single { BookmarkDao() }
+    single<BookmarkRepository> { BookmarkRepositoryImpl(get()) }
+    single { AddBookmarkUseCase(get(), get()) }
+    single { RemoveBookmarkUseCase(get()) }
+    single { GetBookmarksUseCase(get()) }
+    single { CheckBookmarksUseCase(get()) }
 
     // Moderation
     single { ModerationDao() }

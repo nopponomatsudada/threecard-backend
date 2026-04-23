@@ -125,16 +125,8 @@ class DiscoverRoutesTest {
         assertTrue(firstData.size >= 1)
         val bestId = firstData[0].jsonObject["id"]!!.jsonPrimitive.content
 
-        // Viewer creates a collection and bookmarks that best.
-        val collectionResp = client.post("/api/v1/collections") {
-            header(HttpHeaders.Authorization, "Bearer $viewerToken")
-            contentType(ContentType.Application.Json)
-            setBody("""{"title":"Saved"}""")
-        }
-        val collectionId = Json.parseToJsonElement(collectionResp.bodyAsText())
-            .jsonObject["data"]!!.jsonObject["id"]!!.jsonPrimitive.content
-
-        client.post("/api/v1/collections/$collectionId/cards") {
+        // Viewer bookmarks that best.
+        client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
             setBody("""{"bestId":"$bestId"}""")

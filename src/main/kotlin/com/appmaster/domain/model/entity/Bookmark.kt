@@ -1,24 +1,25 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.appmaster.domain.model.entity
 
-import com.appmaster.domain.model.valueobject.CollectionId
+import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.UserId
-import kotlin.time.ExperimentalTime
+import java.util.UUID
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
-data class Collection(
-    val id: CollectionId,
+data class Bookmark(
+    val id: String,
     val userId: UserId,
-    val title: String,
+    val bestId: BestId,
     val createdAt: Instant
 ) {
     companion object {
-        fun create(userId: UserId, title: String): Collection {
+        fun create(userId: UserId, bestId: BestId): Bookmark {
             val now = Instant.fromEpochMilliseconds(System.currentTimeMillis())
-            return Collection(
-                id = CollectionId.generate(),
+            return Bookmark(
+                id = UUID.randomUUID().toString(),
                 userId = userId,
-                title = title,
+                bestId = bestId,
                 createdAt = now
             )
         }

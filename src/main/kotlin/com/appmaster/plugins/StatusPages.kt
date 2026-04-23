@@ -88,7 +88,6 @@ private fun mapDomainError(error: DomainError): Pair<HttpStatusCode, ErrorRespon
         DomainError.EmailAlreadyExists,
         DomainError.AlreadyPosted,
         DomainError.DuplicateBookmark -> HttpStatusCode.Conflict
-        DomainError.CollectionLimitReached -> HttpStatusCode.Conflict
         DomainError.ServerError,
         DomainError.NetworkError -> HttpStatusCode.InternalServerError
         DomainError.ThemeTitleTooLong,
@@ -97,8 +96,6 @@ private fun mapDomainError(error: DomainError): Pair<HttpStatusCode, ErrorRespon
         DomainError.BestItemNameTooLong,
         DomainError.BestItemDescriptionTooLong,
         DomainError.TagNotSelected,
-        DomainError.CollectionTitleRequired,
-        DomainError.CollectionTitleTooLong,
         DomainError.InvalidModerationStatus,
         is DomainError.ValidationError -> HttpStatusCode.BadRequest
     }

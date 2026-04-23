@@ -10,7 +10,7 @@ data class UserProfileResponse(
     val id: String,
     val displayId: String,
     val bestCount: Int,
-    val collectionCount: Int,
+    val bookmarkCount: Int,
     val plan: String,
     val createdAt: String
 )
@@ -19,7 +19,7 @@ fun ProfileWithStats.toDto() = UserProfileResponse(
     id = user.id.value,
     displayId = user.displayId.value,
     bestCount = bestCount,
-    collectionCount = collectionCount,
+    bookmarkCount = bookmarkCount,
     plan = user.plan.name.lowercase(),
     createdAt = user.createdAt.toString()
 )

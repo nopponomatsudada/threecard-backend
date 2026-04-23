@@ -5,8 +5,7 @@ package com.appmaster.data.dao
 import com.appmaster.data.dbQuery
 import com.appmaster.data.entity.BestItemsTable
 import com.appmaster.data.entity.BestsTable
-import com.appmaster.data.entity.CollectionCardsTable
-import com.appmaster.data.entity.CollectionsTable
+import com.appmaster.data.entity.BookmarksTable
 import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.DiscoverCard
@@ -51,11 +50,9 @@ class DiscoverDao {
             .map { it.toBestItem() }
             .groupBy { it.bestId.value }
 
-        val bookmarkedBestIds = CollectionCardsTable
-            .join(CollectionsTable, JoinType.INNER, CollectionCardsTable.collectionId, CollectionsTable.id)
-            .selectAll()
-            .where { (CollectionCardsTable.bestId inList bestIds) and (CollectionsTable.userId eq userId.value) }
-            .map { it[CollectionCardsTable.bestId] }
+        val bookmarkedBestIds = BookmarksTable.selectAll()
+            .where { (BookmarksTable.bestId inList bestIds) and (BookmarksTable.userId eq userId.value) }
+            .map { it[BookmarksTable.bestId] }
             .toSet()
 
         rows.map { row ->
