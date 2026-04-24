@@ -12,6 +12,7 @@ data class BookmarkedItem(
     val rank: Rank,
     val name: String,
     val description: String?,
+    val themeId: String,
     val themeTitle: String,
     val tagId: String,
     val tagName: String,

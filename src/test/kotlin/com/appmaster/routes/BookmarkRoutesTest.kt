@@ -172,6 +172,8 @@ class BookmarkRoutesTest {
         val item = data[0].jsonObject
         assertEquals(bestItemId, item["id"]!!.jsonPrimitive.content)
         assertTrue(item.containsKey("bestId"))
+        assertTrue(item.containsKey("themeId"))
+        assertTrue(item["themeId"]!!.jsonPrimitive.content.isNotBlank())
         assertTrue(item.containsKey("themeTitle"))
         assertTrue(item.containsKey("tagName"))
         assertTrue(item.containsKey("rank"))

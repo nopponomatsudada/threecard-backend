@@ -93,6 +93,7 @@ class BookmarkDao {
             rank = Rank.fromValue(this[BestItemsTable.rank])!!,
             name = this[BestItemsTable.name],
             description = this[BestItemsTable.description],
+            themeId = this[ThemesTable.id],
             themeTitle = this[ThemesTable.title],
             tagId = tagIdValue,
             tagName = tag?.label ?: tagIdValue,
