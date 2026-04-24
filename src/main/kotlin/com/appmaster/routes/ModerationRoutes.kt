@@ -13,10 +13,16 @@ import com.appmaster.routes.dto.UpdateModerationStatusRequest
 import com.appmaster.routes.dto.toDto
 import io.ktor.http.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.*
+import io.ktor.server.plugins.callid.*
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
+import org.slf4j.LoggerFactory
+
+private val adminAuditLog = LoggerFactory.getLogger("com.appmaster.audit.admin")
 
 fun Route.moderationRoutes() {
     val getPendingContentsUseCase by inject<GetPendingContentsUseCase>()
@@ -24,6 +30,7 @@ fun Route.moderationRoutes() {
     val reviewThemeUseCase by inject<ReviewThemeUseCase>()
 
     authenticate("admin") {
+        rateLimit(RateLimitName("sensitive")) {
         route("/api/v1/admin/moderation") {
 
             get("/bests") {
@@ -48,6 +55,7 @@ fun Route.moderationRoutes() {
                         status = status
                     )
                 )
+                adminAuditLog.info("event=moderation.best.review bestId=$bestId status=${status.id} remoteHost=${call.request.origin.remoteHost} requestId=${call.callId}")
                 call.respond(ApiResponse(data = best.toDto()))
             }
 
@@ -73,8 +81,10 @@ fun Route.moderationRoutes() {
                         status = status
                     )
                 )
+                adminAuditLog.info("event=moderation.theme.review themeId=$themeId status=${status.id} remoteHost=${call.request.origin.remoteHost} requestId=${call.callId}")
                 call.respond(ApiResponse(data = theme.toDto()))
             }
+        }
         }
     }
 }
