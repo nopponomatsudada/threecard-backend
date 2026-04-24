@@ -8,7 +8,7 @@ import com.appmaster.data.entity.BookmarksTable
 import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.DiscoverCard
-import com.appmaster.domain.model.`enum`.ModerationStatus
+import com.appmaster.domain.model.enum.ModerationStatus
 import com.appmaster.domain.model.valueobject.UserId
 import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
@@ -42,11 +42,16 @@ class DiscoverDao {
         val bestIds = rows.map { it[BestsTable.id] }
         val itemsByBestId = fetchItemsByBestIds(bestIds)
 
-        val bookmarkedBestIds = BookmarksTable.selectAll()
-            .where { (BookmarksTable.bestId inList bestIds) and (BookmarksTable.userId eq userId.value) }
-            .map { it[BookmarksTable.bestId] }
-            .toSet()
+        val allBestItemIds = itemsByBestId.values.flatten().map { it.id }
+        val bookmarkedBestItemIds = if (allBestItemIds.isNotEmpty()) {
+            BookmarksTable.selectAll()
+                .where { (BookmarksTable.bestItemId inList allBestItemIds) and (BookmarksTable.userId eq userId.value) }
+                .map { it[BookmarksTable.bestItemId] }
+                .toSet()
+        } else {
+            emptySet()
+        }
 
-        rows.map { row -> row.toDiscoverCard(itemsByBestId, row[BestsTable.id] in bookmarkedBestIds) }
+        rows.map { row -> row.toDiscoverCard(itemsByBestId, bookmarkedBestItemIds) }
     }
 }

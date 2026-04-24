@@ -22,7 +22,10 @@ class BookmarkRoutesTest {
     @BeforeTest fun setup() = setupTestDatabase()
     @AfterTest fun teardown() = tearDownTestDatabase()
 
-    private suspend fun HttpClient.createBest(token: String, tagId: String = "music"): String {
+    /**
+     * Creates a theme + best and returns the first bestItem's ID.
+     */
+    private suspend fun HttpClient.createBestAndGetItemId(token: String, tagId: String = "music"): String {
         val themeResp = post("/api/v1/themes") {
             header(HttpHeaders.Authorization, "Bearer $token")
             contentType(ContentType.Application.Json)
@@ -37,8 +40,9 @@ class BookmarkRoutesTest {
             setBody("""{"items":[{"rank":1,"name":"Item 1"},{"rank":2,"name":"Item 2"},{"rank":3,"name":"Item 3"}]}""")
         }
         approveAllContent()
-        return Json.parseToJsonElement(bestResp.bodyAsText())
-            .jsonObject["data"]!!.jsonObject["id"]!!.jsonPrimitive.content
+        val items = Json.parseToJsonElement(bestResp.bodyAsText())
+            .jsonObject["data"]!!.jsonObject["items"]!!.jsonArray
+        return items[0].jsonObject["id"]!!.jsonPrimitive.content
     }
 
     @Test
@@ -46,18 +50,18 @@ class BookmarkRoutesTest {
         configureFullTestApp()
         val client = jsonClient()
         val authorToken = client.getToken("device-bm-001a")
-        val bestId = client.createBest(authorToken)
+        val bestItemId = client.createBestAndGetItemId(authorToken)
 
         val viewerToken = client.getToken("device-bm-001b")
         val response = client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"$bestId"}""")
+            setBody("""{"bestItemId":"$bestItemId"}""")
         }
 
         assertEquals(HttpStatusCode.Created, response.status)
         val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonObject
-        assertEquals(bestId, data["bestId"]!!.jsonPrimitive.content)
+        assertEquals(bestItemId, data["bestItemId"]!!.jsonPrimitive.content)
         assertTrue(data.containsKey("createdAt"))
     }
 
@@ -66,19 +70,19 @@ class BookmarkRoutesTest {
         configureFullTestApp()
         val client = jsonClient()
         val authorToken = client.getToken("device-bm-002a")
-        val bestId = client.createBest(authorToken)
+        val bestItemId = client.createBestAndGetItemId(authorToken)
 
         val viewerToken = client.getToken("device-bm-002b")
         client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"$bestId"}""")
+            setBody("""{"bestItemId":"$bestItemId"}""")
         }
 
         val response = client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"$bestId"}""")
+            setBody("""{"bestItemId":"$bestItemId"}""")
         }
 
         assertEquals(HttpStatusCode.Conflict, response.status)
@@ -88,7 +92,7 @@ class BookmarkRoutesTest {
     }
 
     @Test
-    fun `POST bookmarks with non-existent bestId returns 404`() = testApplication {
+    fun `POST bookmarks with non-existent bestItemId returns 404`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()
         val token = client.getToken("device-bm-003")
@@ -96,7 +100,7 @@ class BookmarkRoutesTest {
         val response = client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $token")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"00000000-0000-0000-0000-000000000000"}""")
+            setBody("""{"bestItemId":"00000000-0000-0000-0000-000000000000"}""")
         }
 
         assertEquals(HttpStatusCode.NotFound, response.status)
@@ -107,16 +111,16 @@ class BookmarkRoutesTest {
         configureFullTestApp()
         val client = jsonClient()
         val authorToken = client.getToken("device-bm-004a")
-        val bestId = client.createBest(authorToken)
+        val bestItemId = client.createBestAndGetItemId(authorToken)
 
         val viewerToken = client.getToken("device-bm-004b")
         client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"$bestId"}""")
+            setBody("""{"bestItemId":"$bestItemId"}""")
         }
 
-        val response = client.delete("/api/v1/bookmarks/$bestId") {
+        val response = client.delete("/api/v1/bookmarks/$bestItemId") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
         }
 
@@ -144,17 +148,17 @@ class BookmarkRoutesTest {
     }
 
     @Test
-    fun `GET bookmarks returns bookmarked cards with details`() = testApplication {
+    fun `GET bookmarks returns bookmarked items with details`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()
         val authorToken = client.getToken("device-bm-006a")
-        val bestId = client.createBest(authorToken)
+        val bestItemId = client.createBestAndGetItemId(authorToken)
 
         val viewerToken = client.getToken("device-bm-006b")
         client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"$bestId"}""")
+            setBody("""{"bestItemId":"$bestItemId"}""")
         }
 
         val response = client.get("/api/v1/bookmarks") {
@@ -165,12 +169,14 @@ class BookmarkRoutesTest {
         val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonArray
         assertEquals(1, data.size)
 
-        val card = data[0].jsonObject
-        assertEquals(bestId, card["id"]!!.jsonPrimitive.content)
-        assertTrue(card.containsKey("themeTitle"))
-        assertTrue(card.containsKey("tagName"))
-        assertTrue(card.containsKey("items"))
-        assertEquals(true, card["isBookmarked"]!!.jsonPrimitive.content.toBoolean())
+        val item = data[0].jsonObject
+        assertEquals(bestItemId, item["id"]!!.jsonPrimitive.content)
+        assertTrue(item.containsKey("bestId"))
+        assertTrue(item.containsKey("themeTitle"))
+        assertTrue(item.containsKey("tagName"))
+        assertTrue(item.containsKey("rank"))
+        assertTrue(item.containsKey("name"))
+        assertTrue(item.containsKey("authorDisplayId"))
     }
 
     @Test
@@ -178,21 +184,21 @@ class BookmarkRoutesTest {
         configureFullTestApp()
         val client = jsonClient()
         val authorToken = client.getToken("device-bm-007a")
-        val bestId1 = client.createBest(authorToken, "music")
+        val bestItemId1 = client.createBestAndGetItemId(authorToken, "music")
 
         val authorToken2 = client.getToken("device-bm-007a2")
-        val bestId2 = client.createBest(authorToken2, "books")
+        val bestItemId2 = client.createBestAndGetItemId(authorToken2, "books")
 
         val viewerToken = client.getToken("device-bm-007b")
         client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"$bestId1"}""")
+            setBody("""{"bestItemId":"$bestItemId1"}""")
         }
         client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"$bestId2"}""")
+            setBody("""{"bestItemId":"$bestItemId2"}""")
         }
 
         val response = client.get("/api/v1/bookmarks?limit=1&offset=0") {
@@ -209,36 +215,36 @@ class BookmarkRoutesTest {
         configureFullTestApp()
         val client = jsonClient()
         val authorToken = client.getToken("device-bm-008a")
-        val bestId1 = client.createBest(authorToken, "music")
+        val bestItemId1 = client.createBestAndGetItemId(authorToken, "music")
 
         val authorToken2 = client.getToken("device-bm-008a2")
-        val bestId2 = client.createBest(authorToken2, "books")
+        val bestItemId2 = client.createBestAndGetItemId(authorToken2, "books")
 
         val viewerToken = client.getToken("device-bm-008b")
         client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"$bestId1"}""")
+            setBody("""{"bestItemId":"$bestItemId1"}""")
         }
 
-        val response = client.get("/api/v1/bookmarks/check?bestIds=$bestId1,$bestId2") {
+        val response = client.get("/api/v1/bookmarks/check?bestItemIds=$bestItemId1,$bestItemId2") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
         }
 
         assertEquals(HttpStatusCode.OK, response.status)
         val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonArray
         val ids = data.map { it.jsonPrimitive.content }
-        assertTrue(bestId1 in ids)
-        assertTrue(bestId2 !in ids)
+        assertTrue(bestItemId1 in ids)
+        assertTrue(bestItemId2 !in ids)
     }
 
     @Test
-    fun `GET bookmarks check with empty bestIds returns empty`() = testApplication {
+    fun `GET bookmarks check with empty bestItemIds returns empty`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()
         val token = client.getToken("device-bm-009")
 
-        val response = client.get("/api/v1/bookmarks/check?bestIds=") {
+        val response = client.get("/api/v1/bookmarks/check?bestItemIds=") {
             header(HttpHeaders.Authorization, "Bearer $token")
         }
 
@@ -253,7 +259,7 @@ class BookmarkRoutesTest {
 
         val response = client.post("/api/v1/bookmarks") {
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"some-id"}""")
+            setBody("""{"bestItemId":"some-id"}""")
         }
 
         assertEquals(HttpStatusCode.Unauthorized, response.status)

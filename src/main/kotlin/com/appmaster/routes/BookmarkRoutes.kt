@@ -1,6 +1,5 @@
 package com.appmaster.routes
 
-import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.usecase.bookmark.AddBookmarkUseCase
 import com.appmaster.domain.usecase.bookmark.CheckBookmarksUseCase
 import com.appmaster.domain.usecase.bookmark.GetBookmarksUseCase
@@ -30,16 +29,16 @@ fun Route.bookmarkRoutes() {
                 val userId = call.requireUserId()
                 val request = call.receive<AddBookmarkRequest>()
                 val bookmark = addBookmarkUseCase(
-                    AddBookmarkUseCase.Params(userId = userId, bestId = BestId(request.bestId))
+                    AddBookmarkUseCase.Params(userId = userId, bestItemId = request.bestItemId)
                 )
                 call.respond(HttpStatusCode.Created, ApiResponse(data = bookmark.toDto()))
             }
 
-            delete("/{bestId}") {
+            delete("/{bestItemId}") {
                 val userId = call.requireUserId()
-                val bestId = BestId(call.parameters["bestId"]!!)
+                val bestItemId = call.parameters["bestItemId"]!!
                 removeBookmarkUseCase(
-                    RemoveBookmarkUseCase.Params(userId = userId, bestId = bestId)
+                    RemoveBookmarkUseCase.Params(userId = userId, bestItemId = bestItemId)
                 )
                 call.respond(HttpStatusCode.NoContent)
             }
@@ -47,22 +46,22 @@ fun Route.bookmarkRoutes() {
             get {
                 val userId = call.requireUserId()
                 val pagination = call.parsePagination()
-                val cards = getBookmarksUseCase(
+                val items = getBookmarksUseCase(
                     GetBookmarksUseCase.Params(
                         userId = userId,
                         limit = pagination.limit,
                         offset = pagination.offset
                     )
                 )
-                call.respond(ApiResponse(data = cards.map { it.toDto() }))
+                call.respond(ApiResponse(data = items.map { it.toDto() }))
             }
 
             get("/check") {
                 val userId = call.requireUserId()
-                val bestIdsParam = call.request.queryParameters["bestIds"]
-                val bestIds = bestIdsParam?.split(",")?.filter { it.isNotBlank() }?.take(100) ?: emptyList()
+                val bestItemIdsParam = call.request.queryParameters["bestItemIds"]
+                val bestItemIds = bestItemIdsParam?.split(",")?.filter { it.isNotBlank() }?.take(100) ?: emptyList()
                 val bookmarkedIds = checkBookmarksUseCase(
-                    CheckBookmarksUseCase.Params(userId = userId, bestIds = bestIds)
+                    CheckBookmarksUseCase.Params(userId = userId, bestItemIds = bestItemIds)
                 )
                 call.respond(ApiResponse(data = bookmarkedIds.toList()))
             }

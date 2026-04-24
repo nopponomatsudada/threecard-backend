@@ -8,5 +8,6 @@ data class BestItem(
     val bestId: BestId,
     val rank: Rank,
     val name: String,
-    val description: String?
+    val description: String?,
+    val isBookmarked: Boolean = false
 )

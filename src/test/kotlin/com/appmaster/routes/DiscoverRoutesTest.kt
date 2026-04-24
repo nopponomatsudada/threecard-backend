@@ -41,7 +41,7 @@ class DiscoverRoutesTest {
     }
 
     @Test
-    fun `GET discover returns cards`() = testApplication {
+    fun `GET discover returns cards with items containing isBookmarked`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()
         val token = client.getToken("device-discover-001")
@@ -58,8 +58,12 @@ class DiscoverRoutesTest {
         assertTrue(card.containsKey("themeTitle"))
         assertTrue(card.containsKey("tagName"))
         assertTrue(card.containsKey("authorDisplayId"))
-        assertTrue(card.containsKey("isBookmarked"))
         assertTrue(card.containsKey("items"))
+        // isBookmarked is now on each item, not on the card
+        val items = card["items"]!!.jsonArray
+        assertTrue(items.size >= 1)
+        assertTrue(items[0].jsonObject.containsKey("isBookmarked"))
+        assertTrue(items[0].jsonObject.containsKey("id"))
     }
 
     @Test
@@ -91,7 +95,7 @@ class DiscoverRoutesTest {
     }
 
     @Test
-    fun `GET discover isBookmarked is false when current user has not bookmarked`() = testApplication {
+    fun `GET discover isBookmarked is false on items when user has not bookmarked`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()
         val authorToken = client.getToken("device-discover-bm-a")
@@ -105,11 +109,15 @@ class DiscoverRoutesTest {
         assertEquals(HttpStatusCode.OK, response.status)
         val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonArray
         assertTrue(data.size >= 1)
-        assertTrue(data.all { !it.jsonObject["isBookmarked"]!!.jsonPrimitive.content.toBoolean() })
+        data.forEach { card ->
+            card.jsonObject["items"]!!.jsonArray.forEach { item ->
+                assertEquals(false, item.jsonObject["isBookmarked"]!!.jsonPrimitive.content.toBoolean())
+            }
+        }
     }
 
     @Test
-    fun `GET discover isBookmarked is true when current user has bookmarked the best`() = testApplication {
+    fun `GET discover isBookmarked is true on bookmarked item`() = testApplication {
         configureFullTestApp()
         val client = jsonClient()
         val authorToken = client.getToken("device-discover-bm-c")
@@ -117,29 +125,32 @@ class DiscoverRoutesTest {
 
         val viewerToken = client.getToken("device-discover-bm-d")
 
-        // Viewer fetches discover once to learn the bestId.
+        // Viewer fetches discover to get bestItemId.
         val firstLook = client.get("/api/v1/discover") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
         }
         val firstData = Json.parseToJsonElement(firstLook.bodyAsText()).jsonObject["data"]!!.jsonArray
         assertTrue(firstData.size >= 1)
-        val bestId = firstData[0].jsonObject["id"]!!.jsonPrimitive.content
+        val bestItemId = firstData[0].jsonObject["items"]!!.jsonArray[0]
+            .jsonObject["id"]!!.jsonPrimitive.content
 
-        // Viewer bookmarks that best.
+        // Viewer bookmarks that item.
         client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"$bestId"}""")
+            setBody("""{"bestItemId":"$bestItemId"}""")
         }
 
-        // Viewer now sees isBookmarked=true on that best.
+        // Viewer now sees isBookmarked=true on that item.
         val secondLook = client.get("/api/v1/discover") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
         }
         val secondData = Json.parseToJsonElement(secondLook.bodyAsText()).jsonObject["data"]!!.jsonArray
-        val matching = secondData.firstOrNull { it.jsonObject["id"]!!.jsonPrimitive.content == bestId }
-        assertTrue(matching != null)
-        assertEquals(true, matching!!.jsonObject["isBookmarked"]!!.jsonPrimitive.content.toBoolean())
+        val matchingItem = secondData.flatMap { card ->
+            card.jsonObject["items"]!!.jsonArray.map { it.jsonObject }
+        }.firstOrNull { it["id"]!!.jsonPrimitive.content == bestItemId }
+        assertTrue(matchingItem != null)
+        assertEquals(true, matchingItem!!["isBookmarked"]!!.jsonPrimitive.content.toBoolean())
     }
 
     @Test

@@ -8,6 +8,7 @@ import com.appmaster.data.entity.BestsTable
 import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.Best
+import com.appmaster.domain.model.entity.BestItem
 import com.appmaster.domain.model.entity.BestWithTheme
 import com.appmaster.domain.model.`enum`.ModerationStatus
 import com.appmaster.domain.model.valueobject.BestId
@@ -21,6 +22,12 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 
 class BestDao {
+
+    suspend fun findBestItemById(id: String): BestItem? = dbQuery {
+        BestItemsTable.selectAll()
+            .where { BestItemsTable.id eq id }
+            .singleOrNull()?.toBestItem()
+    }
 
     suspend fun findById(id: BestId): Best? = dbQuery {
         val best = BestsTable

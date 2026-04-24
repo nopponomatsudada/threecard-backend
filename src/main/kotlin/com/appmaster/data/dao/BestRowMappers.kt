@@ -9,9 +9,9 @@ import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.Best
 import com.appmaster.domain.model.entity.BestItem
 import com.appmaster.domain.model.entity.DiscoverCard
-import com.appmaster.domain.model.`enum`.ModerationStatus
-import com.appmaster.domain.model.`enum`.Rank
-import com.appmaster.domain.model.`enum`.Tag
+import com.appmaster.domain.model.enum.ModerationStatus
+import com.appmaster.domain.model.enum.Rank
+import com.appmaster.domain.model.enum.Tag
 import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.ThemeId
 import com.appmaster.domain.model.valueobject.UserId
@@ -55,7 +55,7 @@ internal fun fetchItemsByBestIds(bestIds: List<String>): Map<String, List<BestIt
 
 internal fun ResultRow.toDiscoverCard(
     itemsByBestId: Map<String, List<BestItem>>,
-    isBookmarked: Boolean
+    bookmarkedBestItemIds: Set<String>
 ): DiscoverCard {
     val bestId = this[BestsTable.id]
     val tagIdValue = this[ThemesTable.tagId]
@@ -67,8 +67,9 @@ internal fun ResultRow.toDiscoverCard(
         tagId = tagIdValue,
         tagName = tag?.label ?: tagIdValue,
         authorDisplayId = this[UsersTable.displayId],
-        items = itemsByBestId[bestId]?.sortedBy { it.rank.value } ?: emptyList(),
-        isBookmarked = isBookmarked,
+        items = itemsByBestId[bestId]?.sortedBy { it.rank.value }?.map { item ->
+            item.copy(isBookmarked = item.id in bookmarkedBestItemIds)
+        } ?: emptyList(),
         createdAt = this[BestsTable.createdAt]
     )
 }

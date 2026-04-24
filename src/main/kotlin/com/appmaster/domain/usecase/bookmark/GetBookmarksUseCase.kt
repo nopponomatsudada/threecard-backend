@@ -1,6 +1,6 @@
 package com.appmaster.domain.usecase.bookmark
 
-import com.appmaster.domain.model.entity.DiscoverCard
+import com.appmaster.domain.model.entity.BookmarkedItem
 import com.appmaster.domain.model.valueobject.UserId
 import com.appmaster.domain.repository.BookmarkRepository
 
@@ -9,7 +9,7 @@ class GetBookmarksUseCase(
 ) {
     data class Params(val userId: UserId, val limit: Int, val offset: Int)
 
-    suspend operator fun invoke(params: Params): List<DiscoverCard> {
+    suspend operator fun invoke(params: Params): List<BookmarkedItem> {
         return bookmarkRepository.findByUserId(params.userId, params.limit, params.offset)
     }
 }

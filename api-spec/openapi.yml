@@ -417,16 +417,21 @@ paths:
                     tagName: "音楽"
                     authorDisplayId: "u_7x2k9m"
                     items:
-                      - rank: 1
+                      - id: "item-001"
+                        rank: 1
                         name: "Lofi Girl"
                         description: "集中できるBGMの定番"
-                      - rank: 2
+                        isBookmarked: true
+                      - id: "item-002"
+                        rank: 2
                         name: "Nujabes"
                         description: null
-                      - rank: 3
+                        isBookmarked: false
+                      - id: "item-003"
+                        rank: 3
                         name: "Tycho"
                         description: "電子音と自然音の融合"
-                    isBookmarked: false
+                        isBookmarked: false
                     createdAt: "2025-01-01T00:00:00Z"
                 meta:
                   timestamp: "2025-01-01T00:00:00Z"
@@ -1062,8 +1067,10 @@ components:
 
     BestItemDto:
       type: object
-      required: [rank, name]
+      required: [id, rank, name, isBookmarked]
       properties:
+        id:
+          type: string
         rank:
           type: integer
           minimum: 1
@@ -1076,6 +1083,8 @@ components:
           type: string
           nullable: true
           maxLength: 140
+        isBookmarked:
+          type: boolean
 
     PostBestRequest:
       type: object
@@ -1104,7 +1113,7 @@ components:
     # --- Discover ---
     DiscoverCardDto:
       type: object
-      required: [id, themeId, themeTitle, tagName, authorDisplayId, items, isBookmarked, createdAt]
+      required: [id, themeId, themeTitle, tagName, authorDisplayId, items, createdAt]
       properties:
         id:
           type: string
@@ -1120,8 +1129,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BestItemDto'
-        isBookmarked:
-          type: boolean
         createdAt:
           type: string
           format: date-time

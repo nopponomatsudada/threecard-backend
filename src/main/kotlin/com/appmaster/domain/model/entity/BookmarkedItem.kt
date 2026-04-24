@@ -2,17 +2,19 @@
 
 package com.appmaster.domain.model.entity
 
+import com.appmaster.domain.model.enum.Rank
 import com.appmaster.domain.model.valueobject.BestId
-import com.appmaster.domain.model.valueobject.ThemeId
 import kotlin.time.Instant
 
-data class DiscoverCard(
-    val id: BestId,
-    val themeId: ThemeId,
+data class BookmarkedItem(
+    val id: String,
+    val bestId: BestId,
+    val rank: Rank,
+    val name: String,
+    val description: String?,
     val themeTitle: String,
     val tagId: String,
     val tagName: String,
     val authorDisplayId: String,
-    val items: List<BestItem>,
     val createdAt: Instant
 )

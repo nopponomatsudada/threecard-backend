@@ -2,6 +2,7 @@ package com.appmaster.data.repository
 
 import com.appmaster.data.dao.BestDao
 import com.appmaster.domain.model.entity.Best
+import com.appmaster.domain.model.entity.BestItem
 import com.appmaster.domain.model.entity.BestWithTheme
 import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.ThemeId
@@ -13,6 +14,8 @@ class BestRepositoryImpl(
 ) : BestRepository {
 
     override suspend fun findById(id: BestId): Best? = dao.findById(id)
+
+    override suspend fun findBestItemById(id: String): BestItem? = dao.findBestItemById(id)
 
     override suspend fun findByThemeId(themeId: ThemeId, limit: Int, offset: Int): List<Best> =
         dao.findByThemeId(themeId, limit, offset)

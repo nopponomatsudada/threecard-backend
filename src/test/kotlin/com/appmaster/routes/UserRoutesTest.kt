@@ -90,15 +90,16 @@ class UserRoutesTest {
             setBody("""{"items":[{"rank":1,"name":"Item A"}]}""")
         }
         approveAllContent()
-        val bestId = Json.parseToJsonElement(bestResp.bodyAsText())
-            .jsonObject["data"]!!.jsonObject["id"]!!.jsonPrimitive.content
+        val bestItemId = Json.parseToJsonElement(bestResp.bodyAsText())
+            .jsonObject["data"]!!.jsonObject["items"]!!.jsonArray[0]
+            .jsonObject["id"]!!.jsonPrimitive.content
 
-        // Bookmark the best as a different user
+        // Bookmark the best item as a different user
         val viewerToken = client.getToken("device-user-003b")
         client.post("/api/v1/bookmarks") {
             header(HttpHeaders.Authorization, "Bearer $viewerToken")
             contentType(ContentType.Application.Json)
-            setBody("""{"bestId":"$bestId"}""")
+            setBody("""{"bestItemId":"$bestItemId"}""")
         }
 
         // Check profile

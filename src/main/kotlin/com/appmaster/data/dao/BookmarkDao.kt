@@ -3,12 +3,15 @@
 package com.appmaster.data.dao
 
 import com.appmaster.data.dbQuery
+import com.appmaster.data.entity.BestItemsTable
 import com.appmaster.data.entity.BestsTable
 import com.appmaster.data.entity.BookmarksTable
 import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.Bookmark
-import com.appmaster.domain.model.entity.DiscoverCard
+import com.appmaster.domain.model.entity.BookmarkedItem
+import com.appmaster.domain.model.enum.Rank
+import com.appmaster.domain.model.enum.Tag
 import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.UserId
 import org.jetbrains.exposed.v1.core.JoinType
@@ -27,28 +30,29 @@ class BookmarkDao {
         BookmarksTable.insert {
             it[id] = bookmark.id
             it[userId] = bookmark.userId.value
-            it[bestId] = bookmark.bestId.value
+            it[bestItemId] = bookmark.bestItemId
             it[createdAt] = bookmark.createdAt
         }
         bookmark
     }
 
-    suspend fun deleteByUserIdAndBestId(userId: UserId, bestId: BestId): Unit = dbQuery {
+    suspend fun deleteByUserIdAndBestItemId(userId: UserId, bestItemId: String): Unit = dbQuery {
         BookmarksTable.deleteWhere {
-            (BookmarksTable.userId eq userId.value) and (BookmarksTable.bestId eq bestId.value)
+            (BookmarksTable.userId eq userId.value) and (BookmarksTable.bestItemId eq bestItemId)
         }
         Unit
     }
 
-    suspend fun findByUserIdAndBestId(userId: UserId, bestId: BestId): Bookmark? = dbQuery {
+    suspend fun findByUserIdAndBestItemId(userId: UserId, bestItemId: String): Bookmark? = dbQuery {
         BookmarksTable.selectAll()
-            .where { (BookmarksTable.userId eq userId.value) and (BookmarksTable.bestId eq bestId.value) }
+            .where { (BookmarksTable.userId eq userId.value) and (BookmarksTable.bestItemId eq bestItemId) }
             .singleOrNull()?.toBookmark()
     }
 
-    suspend fun findByUserId(userId: UserId, limit: Int, offset: Int): List<DiscoverCard> = dbQuery {
+    suspend fun findByUserId(userId: UserId, limit: Int, offset: Int): List<BookmarkedItem> = dbQuery {
         val rows = BookmarksTable
-            .join(BestsTable, JoinType.INNER, BookmarksTable.bestId, BestsTable.id)
+            .join(BestItemsTable, JoinType.INNER, BookmarksTable.bestItemId, BestItemsTable.id)
+            .join(BestsTable, JoinType.INNER, BestItemsTable.bestId, BestsTable.id)
             .join(ThemesTable, JoinType.INNER, BestsTable.themeId, ThemesTable.id)
             .join(UsersTable, JoinType.INNER, BestsTable.authorId, UsersTable.id)
             .selectAll()
@@ -57,12 +61,7 @@ class BookmarkDao {
             .limit(limit).offset(offset.toLong())
             .toList()
 
-        if (rows.isEmpty()) return@dbQuery emptyList()
-
-        val bestIds = rows.map { it[BestsTable.id] }
-        val itemsByBestId = fetchItemsByBestIds(bestIds)
-
-        rows.map { row -> row.toDiscoverCard(itemsByBestId, isBookmarked = true) }
+        rows.map { it.toBookmarkedItem() }
     }
 
     suspend fun countByUserId(userId: UserId): Int = dbQuery {
@@ -71,17 +70,34 @@ class BookmarkDao {
             .count().toInt()
     }
 
-    suspend fun findBookmarkedBestIds(userId: UserId, bestIds: List<String>): Set<String> = dbQuery {
+    suspend fun findBookmarkedBestItemIds(userId: UserId, bestItemIds: List<String>): Set<String> = dbQuery {
         BookmarksTable.selectAll()
-            .where { (BookmarksTable.userId eq userId.value) and (BookmarksTable.bestId inList bestIds) }
-            .map { it[BookmarksTable.bestId] }
+            .where { (BookmarksTable.userId eq userId.value) and (BookmarksTable.bestItemId inList bestItemIds) }
+            .map { it[BookmarksTable.bestItemId] }
             .toSet()
     }
 
     private fun ResultRow.toBookmark(): Bookmark = Bookmark(
         id = this[BookmarksTable.id],
         userId = UserId(this[BookmarksTable.userId]),
-        bestId = BestId(this[BookmarksTable.bestId]),
+        bestItemId = this[BookmarksTable.bestItemId],
         createdAt = this[BookmarksTable.createdAt]
     )
+
+    private fun ResultRow.toBookmarkedItem(): BookmarkedItem {
+        val tagIdValue = this[ThemesTable.tagId]
+        val tag = Tag.fromId(tagIdValue)
+        return BookmarkedItem(
+            id = this[BestItemsTable.id],
+            bestId = BestId(this[BestItemsTable.bestId]),
+            rank = Rank.fromValue(this[BestItemsTable.rank])!!,
+            name = this[BestItemsTable.name],
+            description = this[BestItemsTable.description],
+            themeTitle = this[ThemesTable.title],
+            tagId = tagIdValue,
+            tagName = tag?.label ?: tagIdValue,
+            authorDisplayId = this[UsersTable.displayId],
+            createdAt = this[BookmarksTable.createdAt]
+        )
+    }
 }

@@ -4,7 +4,7 @@ package com.appmaster.routes.dto
 
 import com.appmaster.domain.model.entity.Best
 import com.appmaster.domain.model.entity.BestWithTheme
-import com.appmaster.domain.model.`enum`.Tag
+import com.appmaster.domain.model.enum.Tag
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -32,9 +32,11 @@ data class BestResponse(
 
 @Serializable
 data class BestItemResponse(
+    val id: String,
     val rank: Int,
     val name: String,
-    val description: String?
+    val description: String?,
+    val isBookmarked: Boolean = false
 )
 
 fun Best.toDto() = BestResponse(
@@ -44,9 +46,11 @@ fun Best.toDto() = BestResponse(
     authorDisplayId = authorDisplayId,
     items = items.map { item ->
         BestItemResponse(
+            id = item.id,
             rank = item.rank.value,
             name = item.name,
-            description = item.description
+            description = item.description,
+            isBookmarked = item.isBookmarked
         )
     },
     moderationStatus = moderationStatus.id,
@@ -78,9 +82,11 @@ fun BestWithTheme.toDto() = BestWithThemeResponse(
     authorDisplayId = best.authorDisplayId,
     items = best.items.map { item ->
         BestItemResponse(
+            id = item.id,
             rank = item.rank.value,
             name = item.name,
-            description = item.description
+            description = item.description,
+            isBookmarked = item.isBookmarked
         )
     },
     isForked = best.forkedFromBestId != null,
