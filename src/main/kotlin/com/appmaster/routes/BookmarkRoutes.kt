@@ -60,7 +60,7 @@ fun Route.bookmarkRoutes() {
             get("/check") {
                 val userId = call.requireUserId()
                 val bestIdsParam = call.request.queryParameters["bestIds"]
-                val bestIds = bestIdsParam?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+                val bestIds = bestIdsParam?.split(",")?.filter { it.isNotBlank() }?.take(100) ?: emptyList()
                 val bookmarkedIds = checkBookmarksUseCase(
                     CheckBookmarksUseCase.Params(userId = userId, bestIds = bestIds)
                 )

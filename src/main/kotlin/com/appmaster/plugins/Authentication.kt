@@ -13,6 +13,7 @@ import io.ktor.server.auth.jwt.*
 import io.ktor.server.response.*
 import org.koin.ktor.ext.get
 import org.slf4j.LoggerFactory
+import java.security.MessageDigest
 
 private val authLog = LoggerFactory.getLogger("com.appmaster.auth")
 
@@ -22,17 +23,18 @@ fun Application.configureAuthentication() {
     val config: JwtConfig = get()
     val blocklist: JwtBlocklistRepository = get()
 
-    val adminApiKey = environment.config.propertyOrNull("ktor.admin.apiKey")?.getString()
-        ?: System.getenv("ADMIN_API_KEY")
+    val adminApiKey = (environment.config.propertyOrNull("ktor.admin.apiKey")?.getString()
+        ?: System.getenv("ADMIN_API_KEY"))
+        ?.takeIf { it.isNotBlank() }
 
-    if (adminApiKey.isNullOrBlank()) {
+    if (adminApiKey == null) {
         authLog.warn("ADMIN_API_KEY is not set — admin endpoints will reject all requests")
     }
 
     install(Authentication) {
         bearer("admin") {
             authenticate { credential ->
-                if (adminApiKey != null && credential.token == adminApiKey) {
+                if (adminApiKey != null && timingSafeEqual(credential.token, adminApiKey)) {
                     UserIdPrincipal("admin")
                 } else {
                     null
@@ -75,3 +77,6 @@ fun Application.configureAuthentication() {
         }
     }
 }
+
+private fun timingSafeEqual(a: String, b: String): Boolean =
+    MessageDigest.isEqual(a.toByteArray(Charsets.UTF_8), b.toByteArray(Charsets.UTF_8))
