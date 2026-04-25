@@ -34,8 +34,11 @@ FROM eclipse-temurin:21-jre-alpine
 RUN apk add --no-cache bash curl ca-certificates
 
 # cloudflared establishes the Cloudflare Tunnel that fronts this app.
+# TARGETARCH (amd64/arm64) matches Cloudflare's release filename suffix.
+# Default keeps legacy `docker build` (no buildx) producing an amd64 binary.
 ARG CLOUDFLARED_VERSION=2024.10.0
-RUN curl -fsSL "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64" \
+ARG TARGETARCH=amd64
+RUN curl -fsSL "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-${TARGETARCH}" \
         -o /usr/local/bin/cloudflared \
     && chmod +x /usr/local/bin/cloudflared
 

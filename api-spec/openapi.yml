@@ -177,71 +177,21 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /api/v1/admin/auth/bootstrap:
-    post:
+  /api/v1/admin/me:
+    get:
       tags: [admin]
-      operationId: bootstrapAdmin
-      summary: 初回管理者登録
-      description: |
-        管理者がまだ 0 人のときだけ利用可能。`bootstrapToken` がサーバー設定と一致した場合に、
-        最初の管理者アカウントを作成し、管理者 JWT を返す。
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdminBootstrapRequest'
-      responses:
-        '201':
-          description: 管理者作成成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdminAuthResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '409':
-          description: 既に管理者が存在し、bootstrap 不可
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/v1/admin/auth/login:
-    post:
-      tags: [admin]
-      operationId: loginAdmin
-      summary: 管理者ログイン
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AdminLoginRequest'
-      responses:
-        '200':
-          description: ログイン成功
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AdminAuthResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
-  /api/v1/admin/auth/logout:
-    post:
-      tags: [admin]
-      operationId: logoutAdmin
-      summary: 管理者ログアウト
+      operationId: getAdminMe
+      summary: 認証済み管理者プロフィール
+      description: Cloudflare Access SSO で認証された管理者の id / email / displayName を返す。
       security:
         - adminAuth: []
       responses:
-        '204':
-          description: ログアウト完了
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAdminProfile'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -902,11 +852,11 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/cms/audit-logs:
+  /api/v1/admin/audit-logs:
     get:
       tags: [admin]
-      operationId: getCmsAuditLogs
-      summary: CMS 監査ログ一覧
+      operationId: getAdminAuditLogs
+      summary: 管理者監査ログ一覧
       security:
         - adminAuth: []
       parameters:
@@ -941,10 +891,13 @@ components:
       bearerFormat: JWT
 
     adminAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: 管理者ログインで取得した JWT（Authorization: Bearer <accessToken>）
+      type: apiKey
+      in: cookie
+      name: CF_Authorization
+      description: |
+        Cloudflare Access SSO JWT。`CF_Authorization` cookie または
+        `Cf-Access-Jwt-Assertion` ヘッダで送られ、サーバーは Access の JWKS で検証する。
+        ブラウザの場合は Access の SSO により自動付与され、明示的なトークン取得は不要。
 
   # ============================================
   # Parameters
@@ -1141,30 +1094,6 @@ components:
           type: string
           description: "u_ + ランダム英数字6文字"
 
-    AdminLoginRequest:
-      type: object
-      required: [email, password]
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-
-    AdminBootstrapRequest:
-      type: object
-      required: [email, password, displayName, bootstrapToken]
-      properties:
-        email:
-          type: string
-          format: email
-        password:
-          type: string
-        displayName:
-          type: string
-        bootstrapToken:
-          type: string
-
     AdminProfile:
       type: object
       required: [id, email, displayName]
@@ -1177,22 +1106,12 @@ components:
         displayName:
           type: string
 
-    AdminAuthResponse:
+    ApiResponseAdminProfile:
       type: object
       required: [data]
       properties:
         data:
-          type: object
-          required: [accessToken, expiresIn, admin]
-          properties:
-            accessToken:
-              type: string
-              description: 管理者用 JWT アクセストークン
-            expiresIn:
-              type: integer
-              format: int64
-            admin:
-              $ref: '#/components/schemas/AdminProfile'
+          $ref: '#/components/schemas/AdminProfile'
         meta:
           $ref: '#/components/schemas/Meta'
 
