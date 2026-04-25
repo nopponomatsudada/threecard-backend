@@ -26,8 +26,15 @@ import org.jetbrains.exposed.v1.jdbc.update
 class BestDao {
 
     suspend fun findBestItemById(id: String): BestItem? = dbQuery {
-        BestItemsTable.selectAll()
-            .where { BestItemsTable.id eq id }
+        BestItemsTable
+            .join(BestsTable, JoinType.INNER, BestItemsTable.bestId, BestsTable.id)
+            .join(ThemesTable, JoinType.INNER, BestsTable.themeId, ThemesTable.id)
+            .selectAll()
+            .where {
+                (BestItemsTable.id eq id) and
+                    (BestsTable.moderationStatus eq ModerationStatus.APPROVED.id) and
+                    (ThemesTable.moderationStatus eq ModerationStatus.APPROVED.id)
+            }
             .singleOrNull()?.toBestItem()
     }
 

@@ -71,20 +71,20 @@ class CfAccessAuthenticationProvider internal constructor(
         val decoded = try {
             verifier.verify(token)
         } catch (e: JWTVerificationException) {
-            cfAccessLog.warn("CF Access JWT verification failed: {}", e.message)
+            cfAccessLog.warn("CF Access JWT verification failed type={}", e::class.simpleName)
             context.fail(AuthenticationFailedCause.InvalidCredentials, "Cloudflare Access JWT が無効です")
             return
         } catch (e: Exception) {
             // JWK fetch / network / configuration errors — log loudly so
             // misconfiguration is obvious, return 401 rather than 500.
-            cfAccessLog.error("CF Access JWT verification errored unexpectedly: {} {}", e::class.simpleName, e.message)
+            cfAccessLog.error("CF Access JWT verification errored unexpectedly type={}", e::class.simpleName)
             context.fail(AuthenticationFailedCause.Error(e.message ?: "verification error"), "Cloudflare Access JWT の検証に失敗しました")
             return
         }
 
         val email = decoded.getClaim(CF_CLAIM_EMAIL).asString()?.lowercase()
         if (email.isNullOrBlank()) {
-            cfAccessLog.warn("CF Access JWT missing email claim sub={}", decoded.subject)
+            cfAccessLog.warn("CF Access JWT missing email claim")
             context.fail(AuthenticationFailedCause.InvalidCredentials, "認証情報に email が含まれていません")
             return
         }
@@ -121,7 +121,8 @@ internal fun Application.loadCloudflareAccessConfig(): CloudflareAccessConfig {
  * Production verifier backed by the team JWKS endpoint. Per-kid `JWTVerifier`
  * instances are cached so the per-request hot path is just a kid lookup +
  * `verify`, not a re-build of issuer/audience/leeway checks. The underlying
- * `JwkProvider` already caches public keys with a 24h TTL.
+ * `JwkProvider` already caches public keys with a bounded TTL to avoid serving
+ * stale signing keys for too long after an emergency rotation.
  *
  * If team domain / aud tag are missing the returned verifier rejects every
  * token, surfacing misconfiguration as 401 rather than silent open access.
@@ -135,7 +136,7 @@ internal fun cloudflareJwksVerifier(cfConfig: CloudflareAccessConfig): CfAccessT
     // "/.well-known/jwks.json", which would build a non-existent path on
     // Cloudflare's certs endpoint.
     val jwkProvider = JwkProviderBuilder(URI(cfConfig.jwksUrl).toURL())
-        .cached(10, 24, TimeUnit.HOURS)
+        .cached(10, 1, TimeUnit.HOURS)
         .rateLimited(10, 1, TimeUnit.MINUTES)
         .build()
     val verifierByKid = ConcurrentHashMap<String, JWTVerifier>()

@@ -11,7 +11,13 @@ import org.koin.ktor.ext.get
 
 fun Application.configureAuthentication() {
     val cfConfig = loadCloudflareAccessConfig()
+    val devMode = environment.config.propertyOrNull("ktor.development")?.getString()?.toBoolean() == true
     if (!cfConfig.isEnabled) {
+        if (!devMode) {
+            throw IllegalStateException(
+                "CF_ACCESS_TEAM_DOMAIN and CF_ACCESS_AUD_TAG must be configured in production"
+            )
+        }
         log.warn("CF Access disabled: CF_ACCESS_TEAM_DOMAIN / CF_ACCESS_AUD_TAG missing — cf-access realm will reject all requests")
     }
     configureAuthentication(cloudflareJwksVerifier(cfConfig))

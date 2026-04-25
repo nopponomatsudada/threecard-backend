@@ -45,6 +45,25 @@ class BookmarkRoutesTest {
         return items[0].jsonObject["id"]!!.jsonPrimitive.content
     }
 
+    private suspend fun HttpClient.createPendingBestAndGetItemId(token: String, tagId: String = "music"): String {
+        val themeResp = post("/api/v1/themes") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"title":"Pending Theme for $tagId","tagId":"$tagId"}""")
+        }
+        val themeId = Json.parseToJsonElement(themeResp.bodyAsText())
+            .jsonObject["data"]!!.jsonObject["id"]!!.jsonPrimitive.content
+
+        val bestResp = post("/api/v1/themes/$themeId/bests") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"items":[{"rank":1,"name":"Pending Item"}]}""")
+        }
+        val items = Json.parseToJsonElement(bestResp.bodyAsText())
+            .jsonObject["data"]!!.jsonObject["items"]!!.jsonArray
+        return items[0].jsonObject["id"]!!.jsonPrimitive.content
+    }
+
     @Test
     fun `POST bookmarks creates bookmark and returns 201`() = testApplication {
         configureFullTestApp()
@@ -101,6 +120,23 @@ class BookmarkRoutesTest {
             header(HttpHeaders.Authorization, "Bearer $token")
             contentType(ContentType.Application.Json)
             setBody("""{"bestItemId":"00000000-0000-0000-0000-000000000000"}""")
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `POST bookmarks for pending best returns 404`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val authorToken = client.getToken("device-bm-pending-001a")
+        val bestItemId = client.createPendingBestAndGetItemId(authorToken)
+
+        val viewerToken = client.getToken("device-bm-pending-001b")
+        val response = client.post("/api/v1/bookmarks") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"bestItemId":"$bestItemId"}""")
         }
 
         assertEquals(HttpStatusCode.NotFound, response.status)
@@ -238,6 +274,55 @@ class BookmarkRoutesTest {
         val ids = data.map { it.jsonPrimitive.content }
         assertTrue(bestItemId1 in ids)
         assertTrue(bestItemId2 !in ids)
+    }
+
+    @Test
+    fun `Bookmarks become invisible after moderation rejects the best`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val authorToken = client.getToken("device-bm-hidden-001a")
+        val bestItemId = client.createBestAndGetItemId(authorToken)
+        val viewerToken = client.getToken("device-bm-hidden-001b")
+
+        client.post("/api/v1/bookmarks") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"bestItemId":"$bestItemId"}""")
+        }
+
+        val bestId = client.get("/api/v1/bookmarks") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+        }.let { response ->
+            Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonArray[0]
+                .jsonObject["bestId"]!!.jsonPrimitive.content
+        }
+
+        client.patch("/api/v1/admin/moderation/bests/$bestId") {
+            header(TEST_CF_HEADER, cfAccessHeader())
+            contentType(ContentType.Application.Json)
+            setBody("""{"status":"rejected"}""")
+        }
+
+        val listResponse = client.get("/api/v1/bookmarks") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+        }
+        assertEquals(HttpStatusCode.OK, listResponse.status)
+        val listData = Json.parseToJsonElement(listResponse.bodyAsText()).jsonObject["data"]!!.jsonArray
+        assertEquals(0, listData.size)
+
+        val checkResponse = client.get("/api/v1/bookmarks/check?bestItemIds=$bestItemId") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+        }
+        assertEquals(HttpStatusCode.OK, checkResponse.status)
+        val checkData = Json.parseToJsonElement(checkResponse.bodyAsText()).jsonObject["data"]!!.jsonArray
+        assertEquals(0, checkData.size)
+
+        val profileResponse = client.get("/api/v1/users/me") {
+            header(HttpHeaders.Authorization, "Bearer $viewerToken")
+        }
+        assertEquals(HttpStatusCode.OK, profileResponse.status)
+        val profile = Json.parseToJsonElement(profileResponse.bodyAsText()).jsonObject["data"]!!.jsonObject
+        assertEquals(0, profile["bookmarkCount"]!!.jsonPrimitive.content.toInt())
     }
 
     @Test

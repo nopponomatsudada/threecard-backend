@@ -31,17 +31,20 @@ fun Application.configureRateLimit() {
         // mobile / public routes carry a JWTPrincipal with the userId claim.
         register(RateLimitName("api")) {
             rateLimiter(limit = 100, refillPeriod = 1.minutes)
-            requestKey { call ->
-                call.principal<AdminPrincipal>()?.adminId
-                    ?: call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
-                    ?: call.request.origin.remoteHost
-            }
+            requestKey(::principalOrRemoteHostKey)
         }
 
-        // Sensitive operations.
+        // Sensitive operations — use the same principal-first derivation as the
+        // general API bucket so Cloudflare Tunnel shared egress IPs do not cause
+        // cross-admin lockouts on moderation actions.
         register(RateLimitName("sensitive")) {
             rateLimiter(limit = 10, refillPeriod = 1.minutes)
-            requestKey { call -> call.request.origin.remoteHost }
+            requestKey(::principalOrRemoteHostKey)
         }
     }
 }
+
+private fun principalOrRemoteHostKey(call: ApplicationCall): String =
+    call.principal<AdminPrincipal>()?.adminId
+        ?: call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+        ?: call.request.origin.remoteHost

@@ -10,6 +10,7 @@ import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
 import com.appmaster.domain.model.entity.Bookmark
 import com.appmaster.domain.model.entity.BookmarkedItem
+import com.appmaster.domain.model.enum.ModerationStatus
 import com.appmaster.domain.model.enum.Rank
 import com.appmaster.domain.model.enum.Tag
 import com.appmaster.domain.model.valueobject.BestId
@@ -56,7 +57,11 @@ class BookmarkDao {
             .join(ThemesTable, JoinType.INNER, BestsTable.themeId, ThemesTable.id)
             .join(UsersTable, JoinType.INNER, BestsTable.authorId, UsersTable.id)
             .selectAll()
-            .where { BookmarksTable.userId eq userId.value }
+            .where {
+                (BookmarksTable.userId eq userId.value) and
+                    (BestsTable.moderationStatus eq ModerationStatus.APPROVED.id) and
+                    (ThemesTable.moderationStatus eq ModerationStatus.APPROVED.id)
+            }
             .orderBy(BookmarksTable.createdAt to SortOrder.DESC)
             .limit(limit).offset(offset.toLong())
             .toList()
@@ -65,14 +70,31 @@ class BookmarkDao {
     }
 
     suspend fun countByUserId(userId: UserId): Int = dbQuery {
-        BookmarksTable.selectAll()
-            .where { BookmarksTable.userId eq userId.value }
+        BookmarksTable
+            .join(BestItemsTable, JoinType.INNER, BookmarksTable.bestItemId, BestItemsTable.id)
+            .join(BestsTable, JoinType.INNER, BestItemsTable.bestId, BestsTable.id)
+            .join(ThemesTable, JoinType.INNER, BestsTable.themeId, ThemesTable.id)
+            .selectAll()
+            .where {
+                (BookmarksTable.userId eq userId.value) and
+                    (BestsTable.moderationStatus eq ModerationStatus.APPROVED.id) and
+                    (ThemesTable.moderationStatus eq ModerationStatus.APPROVED.id)
+            }
             .count().toInt()
     }
 
     suspend fun findBookmarkedBestItemIds(userId: UserId, bestItemIds: List<String>): Set<String> = dbQuery {
-        BookmarksTable.selectAll()
-            .where { (BookmarksTable.userId eq userId.value) and (BookmarksTable.bestItemId inList bestItemIds) }
+        BookmarksTable
+            .join(BestItemsTable, JoinType.INNER, BookmarksTable.bestItemId, BestItemsTable.id)
+            .join(BestsTable, JoinType.INNER, BestItemsTable.bestId, BestsTable.id)
+            .join(ThemesTable, JoinType.INNER, BestsTable.themeId, ThemesTable.id)
+            .selectAll()
+            .where {
+                (BookmarksTable.userId eq userId.value) and
+                    (BookmarksTable.bestItemId inList bestItemIds) and
+                    (BestsTable.moderationStatus eq ModerationStatus.APPROVED.id) and
+                    (ThemesTable.moderationStatus eq ModerationStatus.APPROVED.id)
+            }
             .map { it[BookmarksTable.bestItemId] }
             .toSet()
     }

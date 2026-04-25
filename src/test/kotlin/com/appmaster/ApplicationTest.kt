@@ -2,6 +2,7 @@
 
 package com.appmaster
 
+import com.appmaster.plugins.configureAuthentication
 import com.appmaster.plugins.configureSerialization
 import com.appmaster.routes.healthRoutes
 import com.appmaster.routes.setupTestDatabase
@@ -9,12 +10,14 @@ import com.appmaster.routes.tearDownTestDatabase
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
+import io.ktor.server.config.*
 import io.ktor.server.routing.*
 import io.ktor.server.testing.*
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class ApplicationTest {
@@ -53,5 +56,19 @@ class ApplicationTest {
         val response = client.get("/")
         assertEquals(HttpStatusCode.OK, response.status)
         assertTrue(response.bodyAsText().contains("AppMaster Backend API"))
+    }
+
+    @Test
+    fun `production startup fails when CF Access is not configured`() = testApplication {
+        environment {
+            config = MapApplicationConfig("ktor.development" to "false")
+        }
+
+        assertFailsWith<IllegalStateException> {
+            application {
+                configureAuthentication()
+            }
+            startApplication()
+        }
     }
 }

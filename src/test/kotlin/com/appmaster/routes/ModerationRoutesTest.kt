@@ -219,6 +219,31 @@ class ModerationRoutesTest {
     }
 
     @Test
+    fun `Sensitive admin rate limit is isolated per admin principal`() = testApplication {
+        configureFullTestApp()
+        val client = jsonClient()
+        val adminA = cfAccessHeader(sub = "admin-a", email = "a@example.com", name = "Admin A")
+        val adminB = cfAccessHeader(sub = "admin-b", email = "b@example.com", name = "Admin B")
+        val token = client.getToken("device-mod-sensitive-limit")
+        val themeId = client.createTheme(token)
+        approveAllContent()
+        val bestId = client.createBest(token, themeId)
+
+        repeat(10) {
+            val response = client.post("/api/v1/admin/moderation/bests/$bestId/skip") {
+                header(TEST_CF_HEADER, adminA)
+            }
+            assertEquals(HttpStatusCode.OK, response.status)
+        }
+
+        val response = client.post("/api/v1/admin/moderation/bests/$bestId/skip") {
+            header(TEST_CF_HEADER, adminB)
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+    }
+
+    @Test
     fun `Admin API without cf-access header returns 401`() = testApplication {
         configureFullTestApp()
 
