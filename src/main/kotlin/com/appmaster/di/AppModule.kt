@@ -37,14 +37,18 @@ import com.appmaster.domain.usecase.auth.RefreshTokenUseCase
 import com.appmaster.domain.usecase.best.GetBestsByThemeUseCase
 import com.appmaster.domain.usecase.best.GetMyBestsUseCase
 import com.appmaster.domain.usecase.best.PostBestUseCase
+import com.appmaster.domain.usecase.best.UpdateBestUseCase
 import com.appmaster.domain.usecase.bookmark.AddBookmarkUseCase
 import com.appmaster.domain.usecase.bookmark.CheckBookmarksUseCase
 import com.appmaster.domain.usecase.bookmark.GetBookmarksUseCase
 import com.appmaster.domain.usecase.bookmark.RemoveBookmarkUseCase
 import com.appmaster.domain.usecase.discover.GetRandomCardsUseCase
+import com.appmaster.domain.usecase.moderation.GetModerationAuditLogsUseCase
 import com.appmaster.domain.usecase.moderation.GetPendingContentsUseCase
 import com.appmaster.domain.usecase.moderation.ReviewBestUseCase
 import com.appmaster.domain.usecase.moderation.ReviewThemeUseCase
+import com.appmaster.domain.usecase.moderation.SkipBestUseCase
+import com.appmaster.domain.usecase.moderation.SkipThemeUseCase
 import com.appmaster.domain.usecase.theme.CreateThemeUseCase
 import com.appmaster.domain.usecase.theme.GetThemeDetailUseCase
 import com.appmaster.domain.usecase.theme.GetThemesUseCase
@@ -116,6 +120,7 @@ fun appModule(environment: ApplicationEnvironment) = module {
     single { BestDao() }
     single<BestRepository> { BestRepositoryImpl(get()) }
     single { PostBestUseCase(get(), get()) }
+    single { UpdateBestUseCase(get()) }
     single { GetBestsByThemeUseCase(get(), get()) }
     single { GetMyBestsUseCase(get()) }
 
@@ -136,6 +141,9 @@ fun appModule(environment: ApplicationEnvironment) = module {
     single { ModerationDao() }
     single<ModerationRepository> { ModerationRepositoryImpl(get()) }
     single { GetPendingContentsUseCase(get()) }
-    single { ReviewBestUseCase(get(), get()) }
-    single { ReviewThemeUseCase(get(), get()) }
+    single { GetModerationAuditLogsUseCase(get()) }
+    single { ReviewBestUseCase(get()) }
+    single { ReviewThemeUseCase(get()) }
+    single { SkipBestUseCase(get()) }
+    single { SkipThemeUseCase(get()) }
 }

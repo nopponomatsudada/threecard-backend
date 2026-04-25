@@ -29,8 +29,15 @@ RUN gradle buildFatJar --no-daemon
 # -----------------------------------------------------------------------------
 FROM eclipse-temurin:21-jre-alpine
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
+# bash is required by entrypoint.sh (`wait -n` is a bash builtin not in
+# BusyBox ash on older Alpine releases). curl handles the local health probe.
+RUN apk add --no-cache bash curl ca-certificates
+
+# cloudflared establishes the Cloudflare Tunnel that fronts this app.
+ARG CLOUDFLARED_VERSION=2024.10.0
+RUN curl -fsSL "https://github.com/cloudflare/cloudflared/releases/download/${CLOUDFLARED_VERSION}/cloudflared-linux-amd64" \
+        -o /usr/local/bin/cloudflared \
+    && chmod +x /usr/local/bin/cloudflared
 
 # Create non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
@@ -39,6 +46,8 @@ WORKDIR /app
 
 # Copy built artifact (appmaster-backend.jar from ktor.fatJar archiveFileName)
 COPY --from=build /app/build/libs/appmaster-backend.jar app.jar
+COPY infra/docker/entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 # Set ownership
 RUN chown -R appuser:appgroup /app
@@ -46,15 +55,10 @@ RUN chown -R appuser:appgroup /app
 # Switch to non-root user
 USER appuser
 
-# Health check endpoint
+# Local probe only — Fly's TCP check (fly.toml) is what actually gates traffic.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:8080/health || exit 1
 
-# Expose application port
-EXPOSE 8080
+ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=60.0 -XX:InitialRAMPercentage=40.0"
 
-# JVM options for containers
-ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:InitialRAMPercentage=50.0"
-
-# Run application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+ENTRYPOINT ["/app/entrypoint.sh"]

@@ -1,6 +1,11 @@
 # Fly.io configuration for threecard-backend
 # Deploy: fly deploy (from threecard-backend directory)
 # Setup guide: infra/fly/README.md
+#
+# Public traffic reaches this app exclusively through the Cloudflare Tunnel
+# established from inside the container (see infra/docker/entrypoint.sh).
+# `[http_service]` is intentionally omitted so threecard-backend.fly.dev is
+# not reachable from the public internet.
 
 app = "threecard-backend"
 primary_region = "nrt"  # Tokyo
@@ -12,25 +17,18 @@ primary_region = "nrt"  # Tokyo
   KTOR_DEVELOPMENT = "false"
   PORT = "8080"
 
-[http_service]
+[[services]]
   internal_port = 8080
-  force_https = true
-  auto_stop_machines = "stop"
-  auto_start_machines = true
-  min_machines_running = 0
+  protocol = "tcp"
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
 
-  [http_service.concurrency]
-    type = "requests"
-    hard_limit = 250
-    soft_limit = 200
-
-[[http_service.checks]]
-  grace_period = "10s"
-  interval = "30s"
-  method = "GET"
-  timeout = "3s"
-  path = "/health"
+  [[services.tcp_checks]]
+    interval = "30s"
+    timeout = "3s"
+    grace_period = "15s"
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "1024mb"  # JVM (~512MB) + cloudflared (~50MB) + headroom

@@ -21,3 +21,10 @@ jwt:
   accessTokenExpiration: 900000
   # 7 days — refresh token TTL (rotated on every use).
   refreshTokenExpiration: 604800000
+
+# Cloudflare Access (admin SSO). When unset, the cf-access realm rejects all requests.
+# teamDomain example: threecard.cloudflareaccess.com
+# audTag is the per-application AUD shown in the Zero Trust dashboard.
+cfAccess:
+  teamDomain: ${?CF_ACCESS_TEAM_DOMAIN}
+  audTag: ${?CF_ACCESS_AUD_TAG}

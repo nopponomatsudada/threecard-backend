@@ -20,6 +20,7 @@ sealed class DomainError(
     data object InvalidDeviceCredentials : DomainError("INVALID_DEVICE_CREDENTIALS", "デバイス認証に失敗しました")
     data object InvalidRefreshToken : DomainError("INVALID_REFRESH_TOKEN", "セッションの有効期限が切れました。もう一度サインインしてください")
     data object EmailAlreadyExists : DomainError("EMAIL_ALREADY_EXISTS", "このメールアドレスは既に使用されています")
+    data object Forbidden : DomainError("FORBIDDEN", "この操作を実行する権限がありません")
 
     // Content Validation Errors (2xxx)
     data object ThemeTitleTooLong : DomainError("THEME_TITLE_TOO_LONG", "100文字以内で入力してください")

@@ -27,10 +27,13 @@ fun Application.configureRateLimit() {
         }
 
         // General API — keyed per authenticated user, falling back to client IP.
+        // Cloudflare-Access-authenticated admin routes carry an AdminPrincipal;
+        // mobile / public routes carry a JWTPrincipal with the userId claim.
         register(RateLimitName("api")) {
             rateLimiter(limit = 100, refillPeriod = 1.minutes)
             requestKey { call ->
-                call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
+                call.principal<AdminPrincipal>()?.adminId
+                    ?: call.principal<JWTPrincipal>()?.payload?.getClaim("userId")?.asString()
                     ?: call.request.origin.remoteHost
             }
         }

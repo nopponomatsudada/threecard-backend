@@ -22,6 +22,13 @@ data class ErrorDetail(
     val details: Map<String, String>? = null
 )
 
+internal suspend fun ApplicationCall.respondUnauthorized(message: String = DomainError.Unauthorized.message) {
+    respond(
+        HttpStatusCode.Unauthorized,
+        ErrorResponse(error = ErrorDetail(code = DomainError.Unauthorized.code, message = message))
+    )
+}
+
 private val errorLog = LoggerFactory.getLogger("com.appmaster.errors")
 
 fun Application.configureStatusPages() {
@@ -81,6 +88,7 @@ fun Application.configureStatusPages() {
 private fun mapDomainError(error: DomainError): Pair<HttpStatusCode, ErrorResponse> {
     val statusCode = when (error) {
         is DomainError.NotFound -> HttpStatusCode.NotFound
+        DomainError.Forbidden -> HttpStatusCode.Forbidden
         DomainError.Unauthorized,
         DomainError.InvalidCredentials,
         DomainError.InvalidDeviceCredentials,

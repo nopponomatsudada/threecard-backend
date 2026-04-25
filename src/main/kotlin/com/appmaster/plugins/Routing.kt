@@ -8,6 +8,7 @@ fun Application.configureRouting() {
     routing {
         healthRoutes()
         authRoutes()
+        adminMeRoutes()
         userRoutes()
         tagRoutes()
         themeRoutes()

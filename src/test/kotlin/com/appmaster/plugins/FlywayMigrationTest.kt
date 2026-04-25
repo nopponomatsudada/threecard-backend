@@ -19,7 +19,7 @@ import kotlin.test.assertTrue
 class FlywayMigrationTest {
 
     @Test
-    fun `V1 plus V2 migrate cleanly on a fresh database`() {
+    fun `migrations apply cleanly on a fresh database`() {
         val dataSource = h2DataSource()
         try {
             Flyway.configure()
@@ -39,6 +39,10 @@ class FlywayMigrationTest {
                 }
                 conn.metaData.getTables(null, null, "JWT_BLOCKLIST", null).use { rs ->
                     assertTrue(rs.next(), "jwt_blocklist table should exist after V2")
+                }
+                // V10 drops admin_users — Cloudflare Access is now the SSOT.
+                conn.metaData.getTables(null, null, "ADMIN_USERS", null).use { rs ->
+                    assertTrue(!rs.next(), "admin_users table should be dropped after V10")
                 }
             }
 

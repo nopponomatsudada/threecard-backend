@@ -22,6 +22,11 @@ fun Application.configureCors() {
         allowHeader(HttpHeaders.Authorization)
         allowHeader(HttpHeaders.ContentType)
         allowHeader(HttpHeaders.Accept)
+        // Cloudflare Access forwards the JWT in this header; preflight must allow it.
+        allowHeader(CF_JWT_HEADER)
+        // CMS uses fetch with credentials: 'include' so that the CF_Authorization
+        // cookie is sent on cross-subdomain calls (cms.threecard.app → api.threecard.app).
+        allowCredentials = true
 
         if (allowedHosts.isNotEmpty()) {
             allowedHosts.forEach { host ->

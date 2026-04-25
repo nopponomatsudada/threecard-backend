@@ -1,46 +1,28 @@
 package com.appmaster.plugins
 
-import com.appmaster.domain.error.DomainError
 import com.appmaster.domain.repository.JwtBlocklistRepository
 import com.appmaster.domain.service.JwtConfig
-import com.appmaster.domain.service.TokenProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
-import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.auth.jwt.*
-import io.ktor.server.response.*
 import org.koin.ktor.ext.get
-import org.slf4j.LoggerFactory
-import java.security.MessageDigest
-
-private val authLog = LoggerFactory.getLogger("com.appmaster.auth")
 
 fun Application.configureAuthentication() {
-    // JwtConfig is loaded once in AppModule (single source of truth, includes
-    // the dev-secret guard). Pull it from Koin.
+    val cfConfig = loadCloudflareAccessConfig()
+    if (!cfConfig.isEnabled) {
+        log.warn("CF Access disabled: CF_ACCESS_TEAM_DOMAIN / CF_ACCESS_AUD_TAG missing — cf-access realm will reject all requests")
+    }
+    configureAuthentication(cloudflareJwksVerifier(cfConfig))
+}
+
+fun Application.configureAuthentication(cfAccessVerifier: CfAccessTokenVerifier) {
     val config: JwtConfig = get()
     val blocklist: JwtBlocklistRepository = get()
 
-    val adminApiKey = (environment.config.propertyOrNull("ktor.admin.apiKey")?.getString()
-        ?: System.getenv("ADMIN_API_KEY"))
-        ?.takeIf { it.isNotBlank() }
-
-    if (adminApiKey == null) {
-        authLog.warn("ADMIN_API_KEY is not set — admin endpoints will reject all requests")
-    }
-
     install(Authentication) {
-        bearer("admin") {
-            authenticate { credential ->
-                if (adminApiKey != null && timingSafeEqual(credential.token, adminApiKey)) {
-                    UserIdPrincipal("admin")
-                } else {
-                    null
-                }
-            }
-        }
+        installCfAccess(cfAccessVerifier)
 
         jwt("jwt") {
             this.realm = config.realm
@@ -63,20 +45,7 @@ fun Application.configureAuthentication() {
                 JWTPrincipal(credential.payload)
             }
 
-            challenge { _, _ ->
-                call.respond(
-                    HttpStatusCode.Unauthorized,
-                    ErrorResponse(
-                        error = ErrorDetail(
-                            code = DomainError.Unauthorized.code,
-                            message = DomainError.Unauthorized.message
-                        )
-                    )
-                )
-            }
+            challenge { _, _ -> call.respondUnauthorized() }
         }
     }
 }
-
-private fun timingSafeEqual(a: String, b: String): Boolean =
-    MessageDigest.isEqual(a.toByteArray(Charsets.UTF_8), b.toByteArray(Charsets.UTF_8))

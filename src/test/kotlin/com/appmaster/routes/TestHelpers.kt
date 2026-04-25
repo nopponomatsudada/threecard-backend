@@ -14,6 +14,7 @@ import com.appmaster.data.entity.BestItemsTable
 import com.appmaster.data.entity.BestsTable
 import com.appmaster.data.entity.BookmarksTable
 import com.appmaster.data.entity.JwtBlocklistTable
+import com.appmaster.data.entity.ModerationAuditLogsTable
 import com.appmaster.data.entity.RefreshTokensTable
 import com.appmaster.data.entity.ThemesTable
 import com.appmaster.data.entity.UsersTable
@@ -45,22 +46,32 @@ import com.appmaster.domain.usecase.auth.RefreshTokenUseCase
 import com.appmaster.domain.usecase.best.GetBestsByThemeUseCase
 import com.appmaster.domain.usecase.best.GetMyBestsUseCase
 import com.appmaster.domain.usecase.best.PostBestUseCase
+import com.appmaster.domain.usecase.best.UpdateBestUseCase
 import com.appmaster.domain.usecase.bookmark.AddBookmarkUseCase
 import com.appmaster.domain.usecase.bookmark.CheckBookmarksUseCase
 import com.appmaster.domain.usecase.bookmark.GetBookmarksUseCase
 import com.appmaster.domain.usecase.bookmark.RemoveBookmarkUseCase
 import com.appmaster.domain.usecase.discover.GetRandomCardsUseCase
+import com.appmaster.domain.usecase.moderation.GetModerationAuditLogsUseCase
 import com.appmaster.domain.usecase.moderation.GetPendingContentsUseCase
 import com.appmaster.domain.usecase.moderation.ReviewBestUseCase
 import com.appmaster.domain.usecase.moderation.ReviewThemeUseCase
+import com.appmaster.domain.usecase.moderation.SkipBestUseCase
+import com.appmaster.domain.usecase.moderation.SkipThemeUseCase
 import com.appmaster.domain.usecase.theme.CreateThemeUseCase
 import com.appmaster.domain.usecase.theme.GetThemeDetailUseCase
 import com.appmaster.domain.usecase.theme.GetThemesUseCase
 import com.appmaster.domain.usecase.user.GetMyProfileUseCase
+import com.appmaster.plugins.CF_CLAIM_EMAIL
+import com.appmaster.plugins.CF_CLAIM_NAME
+import com.appmaster.plugins.CF_JWT_HEADER
+import com.appmaster.plugins.CfAccessTokenVerifier
 import com.appmaster.plugins.configureAuthentication
 import com.appmaster.plugins.configureRateLimit
 import com.appmaster.plugins.configureSerialization
 import com.appmaster.plugins.configureStatusPages
+import com.auth0.jwt.JWT
+import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.request.*
@@ -95,7 +106,8 @@ internal val ALL_TABLES = arrayOf(
     BestItemsTable,
     BookmarksTable,
     RefreshTokensTable,
-    JwtBlocklistTable
+    JwtBlocklistTable,
+    ModerationAuditLogsTable
 )
 
 internal fun setupTestDatabase() {
@@ -147,6 +159,7 @@ fun fullTestModule() = module {
     single { BestDao() }
     single<BestRepository> { BestRepositoryImpl(get()) }
     single { PostBestUseCase(get(), get()) }
+    single { UpdateBestUseCase(get()) }
     single { GetBestsByThemeUseCase(get(), get()) }
     single { GetMyBestsUseCase(get()) }
     single { DiscoverDao() }
@@ -162,8 +175,11 @@ fun fullTestModule() = module {
     single { ModerationDao() }
     single<ModerationRepository> { ModerationRepositoryImpl(get()) }
     single { GetPendingContentsUseCase(get()) }
-    single { ReviewBestUseCase(get(), get()) }
-    single { ReviewThemeUseCase(get(), get()) }
+    single { GetModerationAuditLogsUseCase(get()) }
+    single { ReviewBestUseCase(get()) }
+    single { ReviewThemeUseCase(get()) }
+    single { SkipBestUseCase(get()) }
+    single { SkipThemeUseCase(get()) }
 }
 
 fun ApplicationTestBuilder.configureFullTestApp() {
@@ -172,8 +188,7 @@ fun ApplicationTestBuilder.configureFullTestApp() {
             "jwt.secret" to testJwtConfig.secret,
             "jwt.issuer" to testJwtConfig.issuer,
             "jwt.audience" to testJwtConfig.audience,
-            "jwt.realm" to testJwtConfig.realm,
-            "ktor.admin.apiKey" to TEST_ADMIN_API_KEY
+            "jwt.realm" to testJwtConfig.realm
         )
     }
     application {
@@ -181,11 +196,12 @@ fun ApplicationTestBuilder.configureFullTestApp() {
         // JwtBlocklistRepository from Koin.
         this@application.install(Koin) { modules(fullTestModule()) }
         configureSerialization()
-        configureAuthentication()
+        configureAuthentication(testCfAccessVerifier())
         configureRateLimit()
         configureStatusPages()
         routing {
             authRoutes()
+            adminMeRoutes()
             userRoutes()
             tagRoutes()
             themeRoutes()
@@ -197,7 +213,37 @@ fun ApplicationTestBuilder.configureFullTestApp() {
     }
 }
 
-internal const val TEST_ADMIN_API_KEY = "test-admin-key-12345"
+// ---------------------------------------------------------------------------
+// Cloudflare Access test helpers
+// ---------------------------------------------------------------------------
+
+private const val TEST_CF_ACCESS_SECRET = "test-cf-access-secret-1234567890"
+private const val TEST_CF_ACCESS_ISSUER = "https://test.cloudflareaccess.com"
+private const val TEST_CF_ACCESS_AUD = "test-aud-tag"
+private val TEST_CF_ALGORITHM = Algorithm.HMAC256(TEST_CF_ACCESS_SECRET)
+
+internal const val TEST_CF_HEADER = CF_JWT_HEADER
+
+private fun testCfAccessVerifier(): CfAccessTokenVerifier {
+    val verifier = JWT.require(TEST_CF_ALGORITHM)
+        .withIssuer(TEST_CF_ACCESS_ISSUER)
+        .withAudience(TEST_CF_ACCESS_AUD)
+        .build()
+    return CfAccessTokenVerifier { token -> verifier.verify(token) }
+}
+
+/** Build a CF Access JWT signed with the test HMAC secret for use as a request header value. */
+fun cfAccessHeader(
+    email: String = "admin@example.com",
+    name: String = "Admin Reviewer",
+    sub: String = "test-admin-id",
+): String = JWT.create()
+    .withIssuer(TEST_CF_ACCESS_ISSUER)
+    .withAudience(TEST_CF_ACCESS_AUD)
+    .withSubject(sub)
+    .withClaim(CF_CLAIM_EMAIL, email)
+    .withClaim(CF_CLAIM_NAME, name)
+    .sign(TEST_CF_ALGORITHM)
 
 /**
  * Approve all PENDING bests and themes so they appear in Discover/Theme listings.
