@@ -177,6 +177,74 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
+  /api/v1/admin/auth/bootstrap:
+    post:
+      tags: [admin]
+      operationId: bootstrapAdmin
+      summary: 初回管理者登録
+      description: |
+        管理者がまだ 0 人のときだけ利用可能。`bootstrapToken` がサーバー設定と一致した場合に、
+        最初の管理者アカウントを作成し、管理者 JWT を返す。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminBootstrapRequest'
+      responses:
+        '201':
+          description: 管理者作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 既に管理者が存在し、bootstrap 不可
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/auth/login:
+    post:
+      tags: [admin]
+      operationId: loginAdmin
+      summary: 管理者ログイン
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        '200':
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminAuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/admin/auth/logout:
+    post:
+      tags: [admin]
+      operationId: logoutAdmin
+      summary: 管理者ログアウト
+      security:
+        - adminAuth: []
+      responses:
+        '204':
+          description: ログアウト完了
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   # ============================================
   # Tags
   # ============================================
@@ -369,6 +437,47 @@ paths:
                 error:
                   code: "ALREADY_POSTED"
                   message: "このテーマには既に投稿しています"
+
+  /api/v1/themes/{themeId}/bests/{bestId}:
+    put:
+      tags: [bests]
+      operationId: updateBest
+      summary: 自分のベストを更新 (アイテムのみ)
+      description: 自分が投稿したベストの3アイテム (rank/name/description) を更新する。テーマ情報は更新されない。更新後はモデレーションステータスが PENDING に戻る。
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ThemeId'
+        - $ref: '#/components/parameters/BestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostBestRequest'
+            example:
+              items:
+                - rank: 1
+                  name: "Lofi Girl (updated)"
+                  description: "やっぱりこれが一番"
+                - rank: 2
+                  name: "Nujabes"
+                  description: null
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/v1/users/me/bests:
     get:
@@ -685,6 +794,33 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/admin/moderation/bests/{bestId}/skip:
+    post:
+      tags: [admin]
+      operationId: skipBestReview
+      summary: ベストのモデレーションをスキップ
+      security:
+        - adminAuth: []
+      parameters:
+        - $ref: '#/components/parameters/BestId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkipModerationRequest'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseBest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/admin/moderation/themes:
     get:
       tags: [admin]
@@ -739,6 +875,61 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/admin/moderation/themes/{themeId}/skip:
+    post:
+      tags: [admin]
+      operationId: skipThemeReview
+      summary: テーマのモデレーションをスキップ
+      security:
+        - adminAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ThemeId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SkipModerationRequest'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseTheme'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/cms/audit-logs:
+    get:
+      tags: [admin]
+      operationId: getCmsAuditLogs
+      summary: CMS 監査ログ一覧
+      security:
+        - adminAuth: []
+      parameters:
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [approve, reject, skip]
+          required: false
+        - $ref: '#/components/parameters/Limit'
+        - $ref: '#/components/parameters/Offset'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseModerationAuditLogList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
 components:
   # ============================================
   # Security Schemes
@@ -752,7 +943,8 @@ components:
     adminAuth:
       type: http
       scheme: bearer
-      description: Admin API Key（Authorization: Bearer <ADMIN_API_KEY>）
+      bearerFormat: JWT
+      description: 管理者ログインで取得した JWT（Authorization: Bearer <accessToken>）
 
   # ============================================
   # Parameters
@@ -833,6 +1025,17 @@ components:
             error:
               code: "UNAUTHORIZED"
               message: "認証が必要です"
+
+    Forbidden:
+      description: 権限がない
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error:
+              code: "FORBIDDEN"
+              message: "この操作を実行する権限がありません"
 
     NotFound:
       description: リソースが見つからない
@@ -937,6 +1140,61 @@ components:
         displayId:
           type: string
           description: "u_ + ランダム英数字6文字"
+
+    AdminLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AdminBootstrapRequest:
+      type: object
+      required: [email, password, displayName, bootstrapToken]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        displayName:
+          type: string
+        bootstrapToken:
+          type: string
+
+    AdminProfile:
+      type: object
+      required: [id, email, displayName]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+
+    AdminAuthResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [accessToken, expiresIn, admin]
+          properties:
+            accessToken:
+              type: string
+              description: 管理者用 JWT アクセストークン
+            expiresIn:
+              type: integer
+              format: int64
+            admin:
+              $ref: '#/components/schemas/AdminProfile'
+        meta:
+          $ref: '#/components/schemas/Meta'
 
     # --- Tag ---
     TagDto:
@@ -1214,6 +1472,40 @@ components:
           type: string
           enum: [approved, rejected]
           description: 管理者が設定するステータス（approved または rejected）
+        note:
+          type: string
+          description: 監査ログに残す補足メモ
+
+    SkipModerationRequest:
+      type: object
+      properties:
+        note:
+          type: string
+          description: スキップ理由などの補足メモ
+
+    ModerationAuditLogDto:
+      type: object
+      required: [id, reviewer, action, targetType, targetId, targetTitle, note, timestamp]
+      properties:
+        id:
+          type: string
+        reviewer:
+          type: string
+        action:
+          type: string
+          enum: [approve, reject, skip]
+        targetType:
+          type: string
+          enum: [theme, best]
+        targetId:
+          type: string
+        targetTitle:
+          type: string
+        note:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
 
     # --- Common ---
     Meta:
@@ -1292,6 +1584,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BestDto'
+        meta:
+          $ref: '#/components/schemas/Meta'
+
+    ApiResponseModerationAuditLogList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModerationAuditLogDto'
         meta:
           $ref: '#/components/schemas/Meta'
 

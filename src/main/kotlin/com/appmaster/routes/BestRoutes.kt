@@ -1,8 +1,11 @@
 package com.appmaster.routes
 
+import com.appmaster.domain.model.valueobject.BestId
 import com.appmaster.domain.model.valueobject.ThemeId
+import com.appmaster.domain.usecase.best.BestItemParam
 import com.appmaster.domain.usecase.best.GetBestsByThemeUseCase
 import com.appmaster.domain.usecase.best.PostBestUseCase
+import com.appmaster.domain.usecase.best.UpdateBestUseCase
 import com.appmaster.routes.dto.ApiResponse
 import com.appmaster.routes.dto.PostBestRequest
 import com.appmaster.routes.dto.toDto
@@ -16,6 +19,7 @@ import org.koin.ktor.ext.inject
 
 fun Route.bestRoutes() {
     val postBestUseCase by inject<PostBestUseCase>()
+    val updateBestUseCase by inject<UpdateBestUseCase>()
     val getBestsByThemeUseCase by inject<GetBestsByThemeUseCase>()
 
     authenticate("jwt") {
@@ -46,7 +50,7 @@ fun Route.bestRoutes() {
                         themeId = themeId,
                         authorId = userId,
                         items = request.items.map { item ->
-                            PostBestUseCase.ItemParam(
+                            BestItemParam(
                                 rank = item.rank,
                                 name = item.name,
                                 description = item.description
@@ -55,6 +59,29 @@ fun Route.bestRoutes() {
                     )
                 )
                 call.respond(HttpStatusCode.Created, ApiResponse(data = best.toDto()))
+            }
+
+            put("/{bestId}") {
+                val userId = call.requireUserId()
+                val themeId = ThemeId(call.parameters["themeId"]!!)
+                val bestId = BestId(call.parameters["bestId"]!!)
+                val request = call.receive<PostBestRequest>()
+
+                val best = updateBestUseCase(
+                    UpdateBestUseCase.Params(
+                        bestId = bestId,
+                        themeId = themeId,
+                        authorId = userId,
+                        items = request.items.map { item ->
+                            BestItemParam(
+                                rank = item.rank,
+                                name = item.name,
+                                description = item.description
+                            )
+                        }
+                    )
+                )
+                call.respond(HttpStatusCode.OK, ApiResponse(data = best.toDto()))
             }
         }
         }

@@ -39,6 +39,7 @@ dependencies {
 
     // Security
     implementation(libs.bcrypt)
+    implementation(libs.jwks.rsa)
 
     // Serialization
     implementation(libs.ktor.serialization.kotlinx.json)

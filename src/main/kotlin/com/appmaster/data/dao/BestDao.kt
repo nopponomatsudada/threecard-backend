@@ -18,8 +18,10 @@ import org.jetbrains.exposed.v1.core.JoinType
 import org.jetbrains.exposed.v1.core.SortOrder
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 
 class BestDao {
 
@@ -123,6 +125,30 @@ class BestDao {
         }
 
         // Look up author's displayId for the response
+        val displayId = UsersTable.selectAll()
+            .where { UsersTable.id eq best.authorId.value }
+            .single()[UsersTable.displayId]
+
+        best.copy(authorDisplayId = displayId)
+    }
+
+    suspend fun update(best: Best): Best = dbQuery {
+        BestsTable.update({ BestsTable.id eq best.id.value }) {
+            it[moderationStatus] = best.moderationStatus.id
+        }
+
+        BestItemsTable.deleteWhere { bestId eq best.id.value }
+
+        best.items.forEach { item ->
+            BestItemsTable.insert {
+                it[id] = item.id
+                it[bestId] = best.id.value
+                it[rank] = item.rank.value
+                it[name] = item.name
+                it[description] = item.description
+            }
+        }
+
         val displayId = UsersTable.selectAll()
             .where { UsersTable.id eq best.authorId.value }
             .single()[UsersTable.displayId]

@@ -264,4 +264,112 @@ class BestRoutesTest {
 
         assertEquals(HttpStatusCode.BadRequest, response.status)
     }
+
+    private suspend fun HttpClient.postBest(
+        token: String,
+        themeId: String,
+        body: String = """{"items":[{"rank":1,"name":"Item 1"},{"rank":2,"name":"Item 2"},{"rank":3,"name":"Item 3"}]}""",
+    ): String {
+        val response = post("/api/v1/themes/$themeId/bests") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody(body)
+        }
+        return Json.parseToJsonElement(response.bodyAsText())
+            .jsonObject["data"]!!.jsonObject["id"]!!.jsonPrimitive.content
+    }
+
+    @Test
+    fun `PUT bests updates own best and returns 200 with PENDING moderation`() = testApplication {
+        configureTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-best-put-001")
+        val themeId = client.createTheme(token)
+        val bestId = client.postBest(token, themeId)
+
+        val response = client.put("/api/v1/themes/$themeId/bests/$bestId") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"items":[{"rank":1,"name":"Updated 1","description":"new"},{"rank":2,"name":"Updated 2"}]}""")
+        }
+
+        assertEquals(HttpStatusCode.OK, response.status)
+        val data = Json.parseToJsonElement(response.bodyAsText()).jsonObject["data"]!!.jsonObject
+        assertEquals(bestId, data["id"]!!.jsonPrimitive.content)
+        assertEquals("pending", data["moderationStatus"]!!.jsonPrimitive.content)
+        val items = data["items"]!!.jsonArray
+        assertEquals(2, items.size)
+        assertEquals("Updated 1", items[0].jsonObject["name"]!!.jsonPrimitive.content)
+        assertEquals("new", items[0].jsonObject["description"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `PUT bests by another user returns 403 FORBIDDEN`() = testApplication {
+        configureTestApp()
+        val client = jsonClient()
+        val ownerToken = client.getToken("device-best-put-002-owner")
+        val themeId = client.createTheme(ownerToken)
+        val bestId = client.postBest(ownerToken, themeId)
+
+        val attackerToken = client.getToken("device-best-put-002-attacker")
+        val response = client.put("/api/v1/themes/$themeId/bests/$bestId") {
+            header(HttpHeaders.Authorization, "Bearer $attackerToken")
+            contentType(ContentType.Application.Json)
+            setBody("""{"items":[{"rank":1,"name":"Hijack"}]}""")
+        }
+
+        assertEquals(HttpStatusCode.Forbidden, response.status)
+        val error = Json.parseToJsonElement(response.bodyAsText()).jsonObject["error"]!!.jsonObject
+        assertEquals("FORBIDDEN", error["code"]!!.jsonPrimitive.content)
+    }
+
+    @Test
+    fun `PUT bests non-existent bestId returns 404`() = testApplication {
+        configureTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-best-put-003")
+        val themeId = client.createTheme(token)
+
+        val response = client.put("/api/v1/themes/$themeId/bests/00000000-0000-0000-0000-000000000000") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"items":[{"rank":1,"name":"x"}]}""")
+        }
+
+        assertEquals(HttpStatusCode.NotFound, response.status)
+    }
+
+    @Test
+    fun `PUT bests with empty name returns 400`() = testApplication {
+        configureTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-best-put-004")
+        val themeId = client.createTheme(token)
+        val bestId = client.postBest(token, themeId)
+
+        val response = client.put("/api/v1/themes/$themeId/bests/$bestId") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"items":[{"rank":1,"name":"  "}]}""")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
+
+    @Test
+    fun `PUT bests with duplicate ranks returns 400`() = testApplication {
+        configureTestApp()
+        val client = jsonClient()
+        val token = client.getToken("device-best-put-005")
+        val themeId = client.createTheme(token)
+        val bestId = client.postBest(token, themeId)
+
+        val response = client.put("/api/v1/themes/$themeId/bests/$bestId") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody("""{"items":[{"rank":1,"name":"a"},{"rank":1,"name":"b"}]}""")
+        }
+
+        assertEquals(HttpStatusCode.BadRequest, response.status)
+    }
 }

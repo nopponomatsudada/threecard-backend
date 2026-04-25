@@ -33,4 +33,6 @@ class BestRepositoryImpl(
         dao.countByAuthorId(authorId)
 
     override suspend fun save(best: Best): Best = dao.insert(best)
+
+    override suspend fun update(best: Best): Best = dao.update(best)
 }

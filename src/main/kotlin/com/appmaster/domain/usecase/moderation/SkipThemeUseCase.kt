@@ -3,32 +3,24 @@ package com.appmaster.domain.usecase.moderation
 import com.appmaster.domain.error.DomainError
 import com.appmaster.domain.error.DomainException
 import com.appmaster.domain.model.entity.Theme
-import com.appmaster.domain.model.`enum`.ModerationStatus
 import com.appmaster.domain.model.valueobject.ThemeId
 import com.appmaster.domain.repository.ModerationRepository
 
-class ReviewThemeUseCase(
+class SkipThemeUseCase(
     private val moderationRepository: ModerationRepository
 ) {
     data class Params(
         val themeId: ThemeId,
-        val status: ModerationStatus,
         val reviewer: String,
         val note: String
     )
 
-    suspend operator fun invoke(params: Params): Theme {
-        if (!params.status.isReviewDecision) {
-            throw DomainException(DomainError.InvalidModerationStatus)
-        }
-
-        return moderationRepository.reviewTheme(
+    suspend operator fun invoke(params: Params): Theme =
+        moderationRepository.skipTheme(
             themeId = params.themeId,
-            status = params.status,
             audit = ModerationRepository.AuditMetadata(
                 reviewer = params.reviewer,
                 note = params.note
             )
         ) ?: throw DomainException(DomainError.NotFound("テーマ"))
-    }
 }

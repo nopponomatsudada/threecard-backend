@@ -16,4 +16,5 @@ interface BestRepository {
     suspend fun findByAuthorAndTheme(authorId: UserId, themeId: ThemeId): Best?
     suspend fun countByAuthorId(authorId: UserId): Int
     suspend fun save(best: Best): Best
+    suspend fun update(best: Best): Best
 }
